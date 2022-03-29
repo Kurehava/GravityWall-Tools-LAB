@@ -34,33 +34,32 @@ def Direct_cal():
 def Indirect_cal():
     NOW_time=time.time()
     
-    Target_date=input("目标日期时间(year-mouth-date-hour-minute-second):\n>> ").replace("-",",")
+    Target_date=input("目标日期时间(year-mouth-date-hour-minute-second):\n>> ").replace("-"," ")
     if len(Target_date) > 19:
         Target_date=""
         while not re.findall('^[0-9 ]+$',Target_date):
             Target_date=input("请输入目标日期(请输入正确的日期时间)：\n>> ").replace("-"," ")
-    else:
-        Target_date=Target_date.replace(","," ")
     while not re.findall('^[0-9 ]+$',Target_date):
         Target_date=input("请输入目标日期(请只输入数字与横杠)：\n>> ").replace("-"," ")       
-    while (int(Target_date.split(" ")[0]) > 2022) or (int(Target_date.split(" ")[1]) > 12) or (int(Target_date.split(" ")[2]) > 31) or (int(Target_date.split(" ")[3]) > 24) or (int(Target_date.split(" ")[4]) > 59) or (int(Target_date.split(" ")[5]) > 59):
-         Target_date=input("请输入目标日期(请输入正确的日期时间)：\n>> ").replace("-"," ")
+    while (int(Target_date.split(" ")[0]) < 2022) or (int(Target_date.split(" ")[1]) > 12) or (int(Target_date.split(" ")[2]) > 31) or (int(Target_date.split(" ")[3]) > 24) or (int(Target_date.split(" ")[4]) > 59) or (int(Target_date.split(" ")[5]) > 59):
+         Target_date=input("请输入目标日期(请输入正确的日期和时间)：\n>> ").replace("-"," ")
     
-    if calendar.isleap(int(Target_date.split(" ")[0])) == True:
-        #非闰年，29天
-        if int(Target_date.split(" ")[2]) > 29:
-            Target_date=""
-            while not re.findall('^[0-9 ]+$',Target_date):
-                Target_date=input("请输入目标日期(请输入正确的日期时间)：\n>> ").replace("-"," ")
-    else:
-        #非闰年，28天
-        if int(Target_date.split(" ")[2]) > 28:
-            Target_date=""
-            while not re.findall('^[0-9 ]+$',Target_date):
-                Target_date=input("请输入目标日期(请输入正确的日期时间)：\n>> ").replace("-"," ")
+    if Target_date.split(" ")[1] in {"02","2"}:
+        if calendar.isleap(int(Target_date.split(" ")[0])) == True:
+            #非闰年，29天
+            if int(Target_date.split(" ")[2]) > 29:
+                Target_date=""
+                while not re.findall('^[0-9 ]+$',Target_date):
+                    Target_date=input("请输入目标日期(请输入正确的2月份日期)：\n>> ").replace("-"," ")
+        else:
+            #非闰年，28天
+            if int(Target_date.split(" ")[2]) > 28:
+                Target_date=""
+                while not re.findall('^[0-9 ]+$',Target_date):
+                    Target_date=input("请输入目标日期(请输入正确的2月份日期)：\n>> ").replace("-"," ")
                 
     while not (time.mktime(time.strptime(Target_date,"%Y %m %d %H %M %S")) > NOW_time):
-        Target_date=input("请输入目标日期(请输入正确的日期时间)：\n>> ").replace("-"," ")
+        Target_date=input("请输入目标日期(请输入正确的日期时间格式)：\n>> ").replace("-"," ")
         
     Now_Physical_strength=input("当前体力(若需要预测时间超过21小时20分，请输入0):\n>> ").replace("-"," ")
     while not re.findall('^[0-9]+$',Now_Physical_strength):
