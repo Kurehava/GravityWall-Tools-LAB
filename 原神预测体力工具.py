@@ -20,7 +20,7 @@ def Direct_cal():
     while not re.findall('^[0-9]+$',FUL_Physical_strength):
         FUL_Physical_strength=input("需预测体力(请只输入数字)：")
         
-    while not (FUL_Physical_strength < NOW_Physical_strength):
+    while int(FUL_Physical_strength) > int(NOW_Physical_strength):
         print("错误：需预测体力需要大于当前体力！")
         NOW_Physical_strength=input("当前体力：")
         while not re.findall('^[0-9]+$',NOW_Physical_strength):
