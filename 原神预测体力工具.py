@@ -7,6 +7,7 @@ from platform import system
 osname=system()
 if osname == 'Windows':os.system("mode con cols=79 lines=20");clsswitch="cls"
 elif osname == "Linux" or osname == "Darwin":os.system("printf '\033[8;20;79t'");clsswitch="clear"
+print("Powered by nyarinto")
 
 def Direct_cal():
     times=time.time()
@@ -29,7 +30,7 @@ def Direct_cal():
             FUL_Physical_strength=input("需预测体力(请只输入数字)：") 
              
     TIME=(int(FUL_Physical_strength)-int(NOW_Physical_strength))*480
-    print("\n预测时间：\n",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(times+TIME)),"~",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(times+TIME+480)),"\n")
+    print("\n预测时间：\033[93m\n",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(times+TIME)),"\033[0m~\033[93m",time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(times+TIME+480)),"\033[0m")
 
 def Indirect_cal():
     NOW_time=time.time()
