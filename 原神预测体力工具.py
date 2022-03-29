@@ -1,11 +1,12 @@
-###########################
-#author : orikiringi
-#date   : 2022-03-30-01-35
-###########################
 import time
 import re
 import os
 import calendar
+from platform import system
+
+osname=system()
+if osname == 'Windows':os.system("mode con cols=79 lines=20")
+elif osname == "Linux" or osname == "Darwin":os.system("printf '\033[8;20;79t'")
 
 def Direct_cal():
     times=time.time()
@@ -34,10 +35,12 @@ def Indirect_cal():
     NOW_time=time.time()
     
     Target_date=input("目标日期时间(year-mouth-date-hour-minute-second):\n>> ").replace("-",",")
-    if len(Target_date) > 6:
+    if len(Target_date) > 19:
         Target_date=""
         while not re.findall('^[0-9 ]+$',Target_date):
             Target_date=input("请输入目标日期(请输入正确的日期时间)：\n>> ").replace("-"," ")
+    else:
+        Target_date=Target_date.replace(","," ")
     while not re.findall('^[0-9 ]+$',Target_date):
         Target_date=input("请输入目标日期(请只输入数字与横杠)：\n>> ").replace("-"," ")       
     while (int(Target_date.split(" ")[0]) > 2022) or (int(Target_date.split(" ")[1]) > 12) or (int(Target_date.split(" ")[2]) > 31) or (int(Target_date.split(" ")[3]) > 24) or (int(Target_date.split(" ")[4]) > 59) or (int(Target_date.split(" ")[5]) > 59):
