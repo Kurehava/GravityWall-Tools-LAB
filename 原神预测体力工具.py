@@ -1,3 +1,7 @@
+###########################
+#author : orikiringi
+#date   : 2022-03-30-01-35
+###########################
 import time
 import re
 import os
