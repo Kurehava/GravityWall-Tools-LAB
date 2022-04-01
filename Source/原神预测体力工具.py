@@ -7,7 +7,7 @@ from platform import system
 osname=system()
 if osname == 'Windows':os.system("mode con cols=79 lines=20");clsswitch="cls"
 elif osname == "Linux" or osname == "Darwin":os.system("printf '\033[8;20;79t'");clsswitch="clear"
-print("Powered by nyarinto")
+print("Powered by Kureha")
 
 def Direct_cal():
     times=time.time()
@@ -79,7 +79,7 @@ def Indirect_cal():
             print("至目标时间时保有体力值：\033[93m\n",int((time.mktime(time.strptime(Target_date,"%Y %m %d %H %M %S"))-NOW_time)/480+int(Now_Physical_strength)),"\033[0m 点体力。")
 
 while True:
-    sec=input("1.预测体力满格时间\n2.体力满格前推计算时间\n>>")
+    sec=input("1.体力恢复时间计算\n2.体力满格前推计算时间\n>>")
     while not re.findall('^[0-9]+$',sec):
         sec=input("1.预测体力满格时间\n2.体力满格前推计算时间\n(请只输入数字)：\n>>")
     sec=int(sec)
