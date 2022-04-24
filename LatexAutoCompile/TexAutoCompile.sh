@@ -1,8 +1,11 @@
-##############################################################################
-#TexAutoCompile LastVersion 0.9.0
-#Powered by orikiringi Belonging to KanagawaUniversity MoritaLab
-#Github:https://github.com/Dinosaur-OrikiRingi
-##############################################################################
+###########################################
+#POWER BY GravityWallToolsDevelopmentLAB  #
+###########################################
+##################################################################
+#TexAutoCompile LastVersion 0.9.0                                #
+#Powered by orikiringi Belonging to KanagawaUniversity MoritaLab #
+#Github:https://github.com/Kurehava                              #
+##################################################################
 #==ver.0.9.0==
 #重构脚本,优化性能
 #Refactor scripts to optimize performance.
