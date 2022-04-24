@@ -5,6 +5,6 @@
 但是请带上我的id或者名字，
 有改正意见也请直说！
 
-1. 原神预测体力工具-Source-python
-2. Block-rm-command-Source-ShellScript
-3. LatexAutoCompile-Source-ShellScript
+1. Source python      原神预测体力工具
+2. Source ShellScript Block-rm-command
+3. Source ShellScript LatexAutoCompile
