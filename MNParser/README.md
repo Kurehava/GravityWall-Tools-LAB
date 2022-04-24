@@ -1,3 +1,0 @@
-# MNParser
-
-dev script Analysis
