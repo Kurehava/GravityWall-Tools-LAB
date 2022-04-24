@@ -6,5 +6,5 @@
 有改正意见也请直说！
 
 1. 原神预测体力工具-Source-python
-2. Block-rm-command-Source-SH
-3. LatexAutoCompile-Source-SH
+2. Block-rm-command-Source-ShellScript
+3. LatexAutoCompile-Source-ShellScript
