@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<script src="/assets/inc/script_top.js" type="text/javascript"></script>
+<script>
+  includeTmp('/assets/inc/meta.html');
+</script>
+<script>
+  includeTmp('/assets/inc/css.html');
+</script>
+<link href="/assets/css/swiper.min.css" media="all" rel="stylesheet" type="text/css"/>
+<link href="/assets/css/page_home.css?20210804" media="all" rel="stylesheet" type="text/css"/>
+<title>神奈川大学</title>
+<script src="/assets/js-cms/jkl-parsexml.js" type="text/javascript"></script>
+<script src="/assets/js-cms/cms-common.js" type="text/javascript"></script>
+<script src="/assets/js-cms/cms_make_promotion.js" type="text/javascript"></script>
+<script src="/assets/js-cms/cms-make_newslist_simple.js" type="text/javascript"></script>
+<script src="/assets/js-cms/cms_make_newsbox.js" type="text/javascript"></script>
+<script src="/assets/js-cms/cms-make_contents.js?202109" type="text/javascript"></script>
+<script src="/assets/inc/googleAnalytics.js" type="text/javascript"></script>
+</head>
+<body data-nav="" id="top" onload="cmssetcookie();">
+<script src="/assets/inc/googleAnalytics2.js" type="text/javascript"></script>
+<!-- start wrapper -->
+<div id="wrapper">
+<!-- header -->
+<script>
+    includeTmpSwitch('/assets/inc/header_pc.html',"pc");
+    includeTmpSwitch('/assets/inc/header_sp.html',"sp");
+  </script>
+<!-- //header -->
+<!-- main -->
+<main role="main">
+<!--sec_promo-->
+<section class="sec_promo">
+<div class="inner">
+<div class="area_promo" id="swiper_promo">
+<ul class="swiper-wrapper" id="js_promo">
+<script type="text/javascript">
+            //プロモバナー
+            view_cms_promotion_second("1");
+            </script>
+</ul>
+<div class="swiper-pagination"></div>
+</div>
+</div>
+</section>
+<!--//sec_promo-->
+<!--sec_topics-->
+<section class="sec_topics">
+<div class="inner">
+<h2>重要なお知らせ<span class="en">Topics</span></h2>
+<div class="flex">
+<div class="area_news">
+<ul class="cmn_newslist2 type02">
+<script language="javascript" type="text/javascript">
+                document.open();
+                document.write(view_newslist_simple(1,"/common/data/important.xml",5));
+                document.close();
+              </script>
+</ul>
+</div>
+<div class="area_link">
+<ul>
+<li class="emergency"><a href="http://emergency.kanagawa-u.ac.jp/?_fsi=stAUjiel" target="_blank"><span>大規模災害の緊急情報</span></a></li>
+<li class="disaster"><a href="/aboutus/variouspolicies/disaster/"><span>大規模災害に対する<br class="for_sp"/>対応について</span></a></li>
+<li class="support"><a href="/news/details_20455.html"><p>新型コロナウイルスに関する対応<span>報告窓口・対策や取り組みについてはこちら</span></p></a></li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!--//sec_topics-->
+<!--sec_news-->
+<section class="sec_news">
+<div class="inner">
+<h2 class="ttl_main"><span class="en">News</span><span class="jp">神大ニュース</span></h2>
+<div class="cmn_newsbox">
+<div class="tab_news">
+<ul class="list_tab flex">
+<li><a class="en active" href="news">NEWS &amp; RELEASE</a></li>
+<li><a href="mediapub">メディア掲載</a></li>
+</ul>
+</div>
+<div class="area_news_wrap">
+<div id="js_clists">
+</div>
+<div class="btn_news_more for_sp" id="btn_more"></div>
+</div>
+</div>
+<div class="btn_morelist">
+<div class="news">
+<ul>
+<li><a class="ov" href="/news/"><span>ニュース一覧</span></a></li>
+<li><a class="ov" href="/pressrelease/"><span>プレスリリース一覧</span></a></li>
+</ul>
+</div>
+<div class="mediapub">
+<ul>
+<li><a class="ov" href="/mediapub/"><span>メディア掲載一覧</span></a></li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!--//sec_news-->
+<!--sec_event-->
+<section class="sec_event">
+<div class="inner">
+<h2 class="ttl_main"><span class="en">Event</span><span class="jp">神大のイベント</span></h2>
+<div class="area_list">
+<script type="text/javascript">
+              //イベント一般
+              document.open();
+              document.write(view_top_event_list());
+              document.close();
+            </script>
+<div class="btn_morelist"><a class="ov" href="/event_calendar/"><img alt="" src="/assets/img/ico_calendar.svg"/><span>カレンダー</span></a></div>
+</div>
+</div>
+</section>
+<!--//sec_event-->
+<!--sec_sns-->
+<!--    <section class="sec_sns">
+      <div class="inner">
+        <h2 class="en">SNS</h2>
+        <ul class="link_sns flex">
+          <li><a href="https://www.instagram.com/kanagawa_univ/" target="_blank" class="insta en over"><img src="img/ico_sns_insta.png" alt=""><span>Instagram</span></a></li>
+          <li><a href="http://www.youtube.com/user/kanagawaunivofficial" target="_blank" class="en over"><img src="img/ico_sns_youtube.png" alt=""><span>Youtube</span></a></li>
+          <li><a href="https://www.facebook.com/kanagawa.univ" target="_blank" class="en over"><img src="img/ico_sns_fb.png" alt=""><span>Facebook</span></a></li>
+          <li><a href="https://twitter.com/ku_official" target="_blank" class="en over"><img src="img/ico_sns_tw.png" alt=""><span>Twitter</span></a></li>
+          <li><a href="https://kanagawa-u.site/" target="_blank" class="en over"><img src="img/ico_sns_note.png" alt=""><span>Note</span></a></li>
+        </ul>
+      </div>
+      <div class="slider_insta">
+        <ul class="list_insta flex swiper-wrapper" id="instafeed">
+        </ul>
+        <div class="arrow prev ov"><img src="/assets/img/ico_arrow_b.svg" alt="次へ"></div>
+        <div class="arrow next ov"><img src="/assets/img/ico_arrow_b.svg" alt="前へ"></div>
+      </div>      
+    </section>-->
+<!--//sec_sns-->
+<!--information-->
+<section class="sec_contents">
+<div class="inner">
+<h2 class="ttl_main"><span class="en">Information</span><span class="jp">さまざまな情報をお届けします！</span></h2>
+<div class="btn_morelist for_pc"><a class="ov" href="/information/"><span>一覧を見る</span></a></div>
+</div>
+<div class="area_slider_warp">
+<div class="area_slider" id="swiper_information">
+<div class="swiper-pagination"></div>
+<script type="text/javascript">
+                document.open();
+                document.write(view_contents(5,"/information/short_index.xml"));
+                document.close();
+              </script>
+<div class="swiper-prev"><img alt="前へ" src="/assets/img/ico_slider.svg"/></div>
+<div class="swiper-next"><img alt="次へ" src="/assets/img/ico_slider.svg"/></div>
+</div>
+</div>
+<div class="btn_morelist for_sp"><a class="ov" href="/information/"><span>一覧を見る</span></a></div>
+</section>
+<!--//information-->
+<!--special-->
+<section class="sec_contents special">
+<div class="inner">
+<h2 class="ttl_main"><span class="en">Special</span><span class="jp">神大をもっと知るコンテンツ</span></h2>
+<div class="btn_morelist for_pc"><a class="ov" href="/special/"><span>一覧を見る</span></a></div>
+</div>
+<div class="area_slider_warp">
+<div class="area_slider" id="swiper_special">
+<div class="swiper-pagination"></div>
+<script type="text/javascript">
+                document.open();
+                document.write(view_contents(5,"/special/short_index.xml"));
+                document.close();
+              </script>
+<div class="swiper-prev"><img alt="前へ" src="/assets/img/ico_slider.svg"/></div>
+<div class="swiper-next"><img alt="次へ" src="/assets/img/ico_slider.svg"/></div>
+</div>
+</div>
+<div class="btn_morelist for_sp"><a class="ov" href="/special/"><span>一覧を見る</span></a></div>
+</section>
+<!--//special-->
+<!--sec_bnr-->
+<section class="sec_bnr">
+<div class="inner">
+<ul class="flex">
+<li><a class="ov" href="/webstation/index.html" target="_blank"><img alt="web station" loading="lazy" src="img/bnr_web_station_l.png"/></a></li>
+<li><a class="ov" href="/disclosure/index.html" target="_blank"><img alt="神奈川大学　－本学の情報－" loading="lazy" src="img/bnr_disclosure_l.png"/></a></li>
+<li><a class="ov" href="/disclosure/2nd/index.html" target="_blank"><img alt="神奈川大学の将来構想" loading="lazy" src="img/bnr_relation_future_l.png"/></a></li>
+<li><a class="ov" href="/aboutus/evaluation/"><img alt="公益財団法人大学基準協会の定める基準に適合していると認定されています。" loading="lazy" src="img/bnr_juaa_l.png"/></a></li>
+<li><a class="ov" href="http://www.ku-partners.co.jp/" target="_blank"><img alt="kup" loading="lazy" src="img/bnr_kup.png"/></a></li>
+<li><a class="ov" href="http://www.ku-mkt.co.jp/" target="_blank"><img alt="神奈川大学発ベンチャー未来環境テクノロジー株式会社" loading="lazy" src="img/bnr_miraikankyo.png"/></a></li>
+<li><a class="ov" href="http://www.fhs.kanagawa-u.ac.jp/" target="_blank"><img alt="神奈川大学付属中・高等学校" loading="lazy" src="img/bnr_relation_chuko_l.png"/></a></li>
+<li><a class="ov" href="http://www.ku-portsquare.jp/" target="_blank"><img alt="KUポートスクエア　神奈川大学みなとみらいエクステンションセンター" loading="lazy" src="img/bnr_ku-portsquare.png"/></a></li>
+<li><a class="ov" href="/kyuryokai/index.html" target="_blank"><img alt="神奈川大学宮陵会" loading="lazy" src="img/bnr_kyuryokai.png"/></a></li>
+<li><a class="ov" href="/kouenkai/index.html" target="_blank"><img alt="神奈川大学後援会" loading="lazy" src="img/bnr_kouenkai.png"/></a></li>
+</ul>
+</div>
+</section>
+<!--//sec_bnr-->
+</main>
+<!-- //main -->
+<!-- footer -->
+<script>
+    includeTmp('/assets/inc/footer.html');
+  </script>
+<!-- //footer -->
+</div>
+<!-- end wrapper -->
+<script>
+  includeTmp('/assets/inc/script.html');
+</script>
+<script src="/assets/js/swiper.min.js"></script>
+<script src="/assets/js/page_home.js"></script>
+</body>
+</html>

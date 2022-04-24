@@ -1,0 +1,573 @@
+<
+!DOCTYPE html
+>
+ 
+<
+html lang="ja"
+>
+ 
+<
+head
+>
+ 
+<
+meta charset="utf-8"
+>
+ 
+<
+script type="text/javascript" src="/assets/inc/script_top.js"
+>
+</
+script
+>
+ 
+<
+script
+>
+ includeTmp('/assets/inc/meta.html'); 
+</
+script
+>
+ 
+<
+script
+>
+ includeTmp('/assets/inc/css.html'); 
+</
+script
+>
+ 
+<
+link rel="stylesheet" href="/assets/css/page_news.css" type="text/css" media="all" /
+>
+ 
+<
+title
+>
+新型コロナウイルス感染症拡大に伴う本学の対応について（9月13日以降）／お知らせ｜神奈川大学
+</
+title
+>
+ 
+<
+script type="text/javascript" src="/assets/js-cms/jkl-parsexml.js"
+>
+</
+script
+>
+ 
+<
+script type="text/javascript" src="/assets/js-cms/cms-common.js"
+>
+</
+script
+>
+ 
+<
+script type="text/javascript" src="/assets/js-cms/cms-make_newslist.js"
+>
+</
+script
+>
+ 
+<
+script type="text/javascript" src="/assets/inc/googleAnalytics.js"
+>
+</
+script
+>
+ 
+</
+head
+>
+ 
+<
+body onLoad="cmssetcookie();" id="top" data-nav="nav01"
+>
+ 
+<
+script type="text/javascript" src="/assets/inc/googleAnalytics2.js"
+>
+</
+script
+>
+ 
+<
+!-- start wrapper --
+>
+ 
+<
+div id="wrapper"
+>
+ 
+<
+!-- header --
+>
+ 
+<
+script
+>
+ includeTmpSwitch('/assets/inc/header_pc.html',"pc"); includeTmpSwitch('/assets/inc/header_sp.html',"sp"); 
+</
+script
+>
+ 
+<
+!-- //header --
+>
+ 
+<
+!-- main --
+>
+ 
+<
+main role="main"
+>
+ 
+<
+!--topic path--
+>
+ 
+<
+nav role="navigation" aria-label="現在位置" class="cmn_topicpath"
+>
+ 
+<
+ol class="flex inner"
+>
+ 
+<
+li
+>
+<
+a href="/"
+>
+ホーム
+</
+a
+>
+</
+li
+>
+ 
+<
+li
+>
+<
+a href="/news/"
+>
+お知らせ
+</
+a
+>
+</
+li
+>
+ 
+<
+li
+>
+新型コロナウイルス感染症拡大に伴う本学の対応について（9月13日以降）
+</
+li
+>
+ 
+</
+ol
+>
+ 
+</
+nav
+>
+ 
+<
+!--//topic path--
+>
+ 
+<
+!--lnav--
+>
+ 
+<
+div id="area_lnav"
+>
+</
+div
+>
+ 
+<
+!--lnav--
+>
+ 
+<
+!--pagetitle--
+>
+ 
+<
+div class="cmn_ttl_page"
+>
+ 
+<
+div class="inner"
+>
+ 
+<
+h1 class="ttl"
+>
+お知らせ
+</
+h1
+>
+ 
+</
+div
+>
+ 
+</
+div
+>
+ 
+<
+!--//pagetitle--
+>
+ 
+<
+!-- ********main_content******** --
+>
+ 
+<
+div class="main_content"
+>
+ 
+<
+div class="inner flex"
+>
+ 
+<
+div class="area_main"
+>
+ 
+<
+!--記事タイトル--
+>
+ 
+<
+div class="news_ttl"
+>
+ 
+<
+p class="date"
+>
+2021.09.10
+</
+p
+>
+ 
+<
+h1
+>
+新型コロナウイルス感染症拡大に伴う本学の対応について（9月13日以降）
+</
+h1
+>
+ 
+</
+div
+>
+ 
+<
+!--//記事タイトル--
+>
+ 
+<
+!--SNSシェアボタン--
+>
+ 
+<
+div class="box_sns"
+>
+ 
+<
+ul class="flex"
+>
+ 
+<
+script type="text/javascript" src="/assets/js-cms/sns.js"
+>
+</
+script
+>
+ 
+</
+ul
+>
+ 
+</
+div
+>
+ 
+<
+!--//SNSシェアボタン--
+>
+ 
+<
+!--ここから記事内容--
+>
+ 
+<
+div class="area_contents" id="cms_contener"
+>
+ 
+<
+!-- M22377 B59603 T4 S59603--
+>
+ 
+<
+div class="cms_txt"
+>
+ 
+<
+p
+>
+政府は、9月30日（木）まで神奈川県への緊急事態宣言を延長することを決定しました。本学の対応はこれまでと変わらず、各キャンパスにおける新型コロナウイルス感染防止策を徹底し、学生、教職員の皆さんの安全を確保しつつ、授業を実施していきます。
+</
+p
+>
+ 
+<
+p
+>
+9月24日（金）から始まる後学期授業に関するご案内は、WeBSt@tionおよびWebClassをご確認ください。
+</
+p
+>
+ 
+<
+p
+>
+&nbsp;
+</
+p
+>
+ 
+<
+p
+>
+◆本学における新型コロナワクチン職域接種は進んでいますが、一方で在学生の皆さんや大学関係者の感染者や濃厚接触者の発生状況は変わりません。授業内での感染防止対策はもとより、授業外でも各自で感染予防に努めてください。最近では変異株の感染が広がっており、若者にも感染者が増え、重症化する人も出ています。
+<
+br /
+>
+ 変異株はエアロゾル（マイクロ飛沫感染）が多いと言われているため、換気に努め、エレベーター内など狭い場所での会話を控え、喫食時には個食・黙食に努めましょう。
+<
+br /
+>
+ 皆さん自身の身の安全を確保すると同時に、周囲の大切な人の命を守るための「感染しない」「感染させない」ことに配慮し、少しでも体調不良を感じたら外出をせず様子をみてください。学生の皆さんの理性ある行動を願っています。
+</
+p
+>
+ 
+<
+p
+>
+&nbsp;
+</
+p
+>
+ 
+<
+p
+>
+The English translation of this notice can be seen by clicking the “English” button at the top right of your screen.
+</
+p
+>
+ 
+</
+div
+>
+ 
+<
+!--2021/09/13 17:05:06--
+>
+ 
+<
+!--戻るボタン--
+>
+ 
+<
+div class="cmn_pageback mt_30"
+>
+ 
+<
+a href="javascript:history.back()" class="over"
+>
+<
+span
+>
+前のページへ戻る
+</
+span
+>
+</
+a
+>
+ 
+</
+div
+>
+ 
+<
+!--//戻るボタン--
+>
+ 
+</
+div
+>
+ 
+<
+!--ここまで記事内容--
+>
+ 
+</
+div
+>
+ 
+<
+div class="area_newslist"
+>
+ 
+<
+!--年別一覧--
+>
+ 
+<
+div class="list_year"
+>
+ 
+<
+div class="list_ttl"
+>
+年別一覧
+</
+div
+>
+ 
+<
+ul class="listLink1" id="js_plists"
+>
+ 
+</
+ul
+>
+ 
+</
+div
+>
+ 
+<
+!--最新のお知らせ--
+>
+ 
+<
+div class="list_latest"
+>
+ 
+<
+div class="list_ttl"
+>
+最新のお知らせ
+</
+div
+>
+ 
+<
+div class="cmn_newslist"
+>
+ 
+<
+ul id="js_hlists"
+>
+ 
+</
+ul
+>
+ 
+</
+div
+>
+ 
+</
+div
+>
+ 
+</
+div
+>
+ 
+</
+div
+>
+ 
+</
+div
+>
+ 
+<
+!--// ********main_content******** --
+>
+ 
+</
+main
+>
+ 
+<
+!-- //main --
+>
+ 
+<
+!-- footer --
+>
+ 
+<
+script
+>
+ includeTmp('/assets/inc/footer.html'); 
+</
+script
+>
+ 
+<
+!-- //footer --
+>
+ 
+</
+div
+>
+ 
+<
+!-- end wrapper --
+>
+ 
+<
+script
+>
+ includeTmp('/assets/inc/script.html'); 
+</
+script
+>
+ 
+<
+script type="text/javascript" language="javascript"
+>
+ window.addEventListener('load', function () { var prm={ rss:"index2020.xml",//RSS new:9999,//NEW thisyear:2021,//YEAR temp:"news",//TEMP yearlist:1,//年度リスト有無 newlist:1//最新のお知らせの有無 } view_news_lists(prm); }); 
+</
+script
+>
+ 
+</
+body
+>
+ 
+</
+html
+>
