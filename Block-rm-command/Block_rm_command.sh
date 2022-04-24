@@ -1,3 +1,6 @@
+############################################
+#POWER BY GravityWallToolsDevelopmentLAB  #
+###########################################
 rmt(){
     PRE_IFS=$IFS;IFS=$'\n'
     #argv="${@}"
