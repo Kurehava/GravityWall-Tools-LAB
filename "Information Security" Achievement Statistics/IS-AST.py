@@ -2,7 +2,7 @@
 # POWER BY GravityWallToolsDevelopmentLAB Project #
 ###################################################
 ###############################################################
-# "Information Security" Achievement Statistics Tools         #
+# "Information Security" Achievement Statistics Tool          #
 # Powered by Kureha Belonging to KanagawaUniversity MoritaLab #
 # Github:https://github.com/Kurehava                          #
 ###############################################################
