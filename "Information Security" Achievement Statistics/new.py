@@ -6,17 +6,19 @@
 # Powered by Kureha Belonging to KanagawaUniversity MoritaLab #
 # Github:https://github.com/Kurehava                          #
 ###############################################################
-import csv
-import os
-import sys
+from sys import exit
+from os import system, remove
+from os.path import split, splitext
+from platform import system as pfs
+from csv import reader
 
-import numpy as np
-import openpyxl
-import pandas as pd
-import xlwt
+from xlwt import Workbook as xW
+from numpy import array, where, flipud, mean
+from pandas import DataFrame, read_excel
+from openpyxl import load_workbook, Workbook
 from statistics import stdev
 
-os.system('clear')
+system('cls') if pfs() == 'Windows' else system('clear')
 
 
 # 按顺序
