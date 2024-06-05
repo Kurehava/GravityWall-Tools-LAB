@@ -1,0 +1,14 @@
+第一次的时候打开的时候阿猫到tools里
+安装一下
+1.ChromeStandaloneSetup64.exe
+（chrome浏览器）
+2.node-v14.15.4-x64.msi
+（本地服务所需程序）
+
+以后就只要点
+*阿猫专用服务开启工具.exe
+
+然后打开浏览器输入
+localhost:5000
+
+回车就能运行了！
