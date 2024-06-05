@@ -1,0 +1,4 @@
+bind-addr: 0.0.0.0:44444
+auth: password
+password: 123456
+cert: false
