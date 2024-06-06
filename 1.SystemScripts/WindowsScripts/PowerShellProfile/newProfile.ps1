@@ -39,6 +39,9 @@ function back(){
   }else{
     Set-Location $history[-1]
     $history.RemoveAt(($history.Count) - 1)
+    if ($Args[0] -eq "-l" -or $args[0] -eq "--list"){
+      newls
+    }
     if ($history.Count -gt 500){
       $history.RemoveAt(0)
     }
@@ -63,3 +66,9 @@ function historys(){
 
 Set-Alias ls newls
 Set-Alias -Name cd -Value newcd -Option AllScope
+function bn(){
+  back
+}
+function bl(){
+  back -l
+}
