@@ -53,6 +53,8 @@ function back(){
 }
 
 function historys(){
+  # Usage:
+  #       history <number>
   if ($Args[0] -eq $null){
     $elemcount=0
     foreach ($elem in $history) {
