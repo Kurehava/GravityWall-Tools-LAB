@@ -22,10 +22,10 @@
   
   国内用户请在https前加上```https://ghproxy.com/```再下载
   
- 1.```wget "https://raw.githubusercontent.com/Kurehava/SHELL_Script/main/_CREATE/System_Linux/ZSH/Sizuku_double_line.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Sizuku_double_line.zsh-theme"```
+ 1.```wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Sizuku_double_line.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Sizuku_double_line.zsh-theme"```
  
  or 
  
- 1.```curl "https://raw.githubusercontent.com/Kurehava/SHELL_Script/main/_CREATE/System_Linux/ZSH/Sizuku_double_line.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/Sizuku_double_line.zsh-theme"```
+ 1.```curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Sizuku_double_line.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/Sizuku_double_line.zsh-theme"```
  
  2.```sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="Sizuku_double_line":g' "$(echo ~)/.zshrc"```
