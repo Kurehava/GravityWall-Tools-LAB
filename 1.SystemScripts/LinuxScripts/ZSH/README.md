@@ -2,11 +2,11 @@
   
   这个是ZSH自动安装脚本, 可以使用命令一键安装
   
-  ```bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/SHELL_Script/main/_CREATE/System_Linux/ZSH/ZSH_INSTALL.sh")```
+  ```bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL.sh")```
   
   国内用户可以用以下的命令
   
-  ```bash <(curl -s -L "https://ghproxy.com/https://raw.githubusercontent.com/Kurehava/SHELL_Script/main/_CREATE/System_Linux/ZSH/ZSH_INSTALL.sh")```
+  ```bash <(curl -s -L "https://ghproxy.com/https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL.sh")```
   
   可以用以下的网址获取短址
   
