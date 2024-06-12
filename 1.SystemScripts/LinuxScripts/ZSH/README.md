@@ -2,8 +2,8 @@
   
   这个是ZSH自动安装脚本, 可以使用命令一键安装
   
-  ```bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL.sh")```
-  全自動
+  ```bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL.sh")```  
+  全自動  
   ```bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL_AUTO.sh")```
   
   国内用户可以用以下的命令
