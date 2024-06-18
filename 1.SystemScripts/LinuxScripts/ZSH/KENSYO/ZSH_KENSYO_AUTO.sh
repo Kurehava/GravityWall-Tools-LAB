@@ -50,6 +50,7 @@ echo -e "$info Platform : $os_plotform"
 case $os_plotform in
     "Ubuntu") pkg_manage="apt";;
     "CentOS Linux") pkg_manage="yum";;
+    "Red Hat Enterprise Linux") pkg_manage="yum";;
     "Debian GNU/Linux") pkg_manage="apt";;
     *) pkg_manage="apt";;
 esac
