@@ -24,6 +24,7 @@ configure_prompt() {
     else
         use_color="%F{green}"
     fi
+    ip_address="ip: `ifconfig eth0 | grep inet | awk '{print $2}' | head -1`"
     case "$PROMPT_ALTERNATIVE" in
         twoline)
             path_c="`pwd`"
@@ -34,7 +35,7 @@ configure_prompt() {
             green_c="%F{green}"
             cp_fn
             # PROMPT=$'%F{%(#.blue.green)}┌──%{$fg[green]%}[%D{%H:%M:%S}][KENSYOENV]${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n%F{%(#.red.red)}::%F{%(#.red.blue)}%m%b%F{%(#.blue.green)})-[%B%F{red}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
-            PROMPT=$'${green_c}[KENSYO]${yellow_c}[%D{%H:%M:%S}]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
+            PROMPT=$'${green_c}[KENSYO]${yellow_c}[%D{%H:%M:%S}]\n[$ip_address]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
             # Right-side prompt with exit codes and background processes
             #RPROMPT=$'%(?.. %? %F{red}%B⨯%b%F{reset})%(1j. %j %F{yellow}%B⚙%b%F{reset}.)'
             ;;
