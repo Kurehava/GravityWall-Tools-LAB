@@ -24,7 +24,7 @@ configure_prompt() {
     else
         use_color="%F{green}"
     fi
-    ip_address="ip: `ifconfig eth0 | grep inet | awk '{print $2}' | head -1`"
+    ip_address="IP: `ifconfig eth0 | grep inet | awk '{print $2}' | head -1`"
     case "$PROMPT_ALTERNATIVE" in
         twoline)
             path_c="`pwd`"
