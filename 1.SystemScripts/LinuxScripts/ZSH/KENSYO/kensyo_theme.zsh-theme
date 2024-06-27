@@ -27,10 +27,10 @@ configure_prompt() {
     ip_address="IP: `ifconfig eth0 | grep inet | awk '{print $2}' | head -1`"
     if [ $ip_address == "" ];then
         ip_address="IP: `ifconfig eth0 | grep inet | awk '{print $2}' | head -1`"
-    done
+    fi
     if [ $ip_address == "" ];then
         ip_address="IP: Unkonw Kensyo Network"
-    done
+    fi
     case "$PROMPT_ALTERNATIVE" in
         twoline)
             path_c="`pwd`"
