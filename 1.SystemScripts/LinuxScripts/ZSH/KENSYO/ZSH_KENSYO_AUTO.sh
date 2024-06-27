@@ -7,16 +7,6 @@ warn="[\033[93mWARN\033[0m]"
 dbug="[\033[95mDBUG\033[0m]"
 user_root="$(echo ~)"
 
-# check county boost
-# while :;do
-#     echo -e "$info Do you need github boost?[Y/N] \c"
-#     read ccb
-#     case $ccb in
-#         Y|y) boost_flag=1;boots_proxy="https://ghproxy.com/";break;;
-#         N|n) boost_flag=0;boots_proxy="";break;;
-#         *) echo -e "$warn input $select is illegal, plz reinput."
-#     esac
-# done
 boost_flag=0
 boots_proxy=""
 
@@ -150,15 +140,6 @@ function shell_check(){
 shell_check
 
 if [ $have_zsh = "no" ];then
-    # while :;do
-    #     echo -e "$warn can not found zsh, do you want install zsh?[Y/N] \c"
-    #     read zsh_install
-    #     case $zsh_install in
-    #         Y|y) echo -e "$info + $root_sudo $pkg_manage install -y zsh";$root_sudo $pkg_manage install -y zsh;break;;
-    #         N|n) echo -e "$erro not zsh env. exit.";exit 1;;
-    #         *) echo -e "$warn input $zsh_install illegal, plz reinput.";;
-    #     esac
-    # done
     echo -e "$info + $root_sudo $pkg_manage install -y zsh"
     $root_sudo $pkg_manage install -y zsh
 fi
@@ -268,31 +249,5 @@ if [ "$?" != "0" ];then
     echo -e "$warn script exit."
     exit 1
 fi
-
-# while :;do
-#     echo -e "$info Now we need root."
-#     echo -e "$info Do you want to automatically reboot now or manually reboot later?[N/L] \c"
-#     read time_
-#     case $time_ in
-#         L|l) echo -e "$info If you want the configuration to take effect,"
-#              echo -e "$info Please remember to manually reboot later."
-#              exit 0
-#              ;;
-#         N|n) if [ "$root_sudo" = "sudo " ];then
-#                 sudo reboot
-#              else
-#                 reboot
-#              fi
-#              if [ "$?" != "0" ];then
-#                 echo -e "$warn For unknown reasons, we cannot reboot the environment for you."
-#                 echo -e "$warn Please manually restart your environment later to apply the changes."
-#                 echo -e "$warn script exit."
-#                 exit 1
-#              fi
-#              exit 0
-#              ;;
-#         *) echo -e "$warn input $select is illegal, plz reinput."
-#     esac
-# done
 
 echo "Process done."
