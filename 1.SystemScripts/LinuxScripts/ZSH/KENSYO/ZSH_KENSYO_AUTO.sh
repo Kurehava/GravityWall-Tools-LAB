@@ -239,7 +239,7 @@ fi
 
 # change def shell
 echo -e "$info change sh to ZSH."
-chsh -s /bin/zsh $(whoami)
+sudo chsh -s /bin/zsh $(whoami)
 if [ "$?" != "0" ];then
     echo -e "$warn For unknown reasons, we cannot change zsh for you."
     echo -e "$warn Please manually change zsh later to apply the changes."
