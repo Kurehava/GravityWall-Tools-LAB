@@ -225,38 +225,6 @@ $(sed -i s:robbyrussell:kensyo:g "$user_root/.zshrc")
 # install plugins
 $(sed -i 's:plugins=(git):plugins=(git z extract):g' "$user_root/.zshrc")
 
-incr_path="$omz_plugins/incr"
-mkdir "$incr_path"
-case $download_command in
-    "wget") echo -e "$info DOWNLOAD Plugin: zsh-autosuggestions"
-            wget "http://mimosa-pudica.net/src/incr-0.2.zsh" -P "$incr_path"
-            incr_install=true
-            ;;
-    "curl") echo -e "$info DOWNLOAD Plugin: zsh-autosuggestions"
-            curl -L "http://mimosa-pudica.net/src/incr-0.2.zsh" -o "$incr_path/incr-0.2.zsh"
-            incr_install=true
-            ;;
-    *) echo -e "$warn Unknown download tool, skip the incr installation for safety reasons."
-       echo -e "$warn You can do the manual installation later with the following command."
-       echo -e "$warn + wget 'http://mimosa-pudica.net/src/incr-0.2.zsh' -P \"$incr_path\""
-       echo -e "$warn + curl 'http://mimosa-pudica.net/src/incr-0.2.zsh' -o \"$incr_path/incr-0.2.zsh\""
-       incr_install=false
-       ;;
-esac
-if $incr_install;then
-    if [ -f "$incr_path/incr-0.2.zsh" ];then
-        echo -e "source $incr_path/incr-0.2.zsh" >> "$user_root/.zshrc"
-        echo -e "$info WRITE: source $incr_path/incr-0.2.zsh >> $user_root/.zshrc"
-    else
-        echo -e "$warn can not found $incr_path/incr-0.2.zsh"
-        echo -e "$warn skip writing incr source to the .zshrc file for security."
-        echo -e "$warn You can do the manual installation later with the following command."
-        echo -e "$warn + wget 'http://mimosa-pudica.net/src/incr-0.2.zsh' -P \"$incr_path\""
-        echo -e "$warn + curl 'http://mimosa-pudica.net/src/incr-0.2.zsh' -o \"$incr_path/incr-0.2.zsh\""
-        echo -e "$warn + source $incr_path/incr-0.2.zsh >> $user_root/.zshrc"
-    fi
-fi
-
 za_path="$omz_plugins/zsh-autosuggestions"
 echo -e "$info DOWNLOAD Plugin: zsh-autosuggestions"
 mkdir "$za_path"
