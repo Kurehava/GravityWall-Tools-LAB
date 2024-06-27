@@ -1,3 +1,5 @@
+# modify from kari theme
+
 force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
