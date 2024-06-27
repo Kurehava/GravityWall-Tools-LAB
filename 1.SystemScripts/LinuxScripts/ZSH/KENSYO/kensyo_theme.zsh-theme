@@ -29,6 +29,9 @@ configure_prompt() {
     ip_addr="`ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1`"
     if [ -z $ip_addr ];then
         ip_addr="`ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1`"
+        container_checker=''
+    else
+        container_checher='[KENSYO]'
     fi
     case "$PROMPT_ALTERNATIVE" in
         twoline)
@@ -40,7 +43,7 @@ configure_prompt() {
             green_c="%F{green}"
             cp_fn
             # PROMPT=$'%F{%(#.blue.green)}┌──%{$fg[green]%}[%D{%H:%M:%S}][KENSYOENV]${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n%F{%(#.red.red)}::%F{%(#.red.blue)}%m%b%F{%(#.blue.green)})-[%B%F{red}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
-            PROMPT=$'${green_c}[KENSYO]${yellow_c}[%D{%H:%M:%S}]\n[IP: $ip_addr]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
+            PROMPT=$'${green_c}$container_checher${yellow_c}[%D{%H:%M:%S}]\n[IP: $ip_addr]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
             # Right-side prompt with exit codes and background processes
             #RPROMPT=$'%(?.. %? %F{red}%B⨯%b%F{reset})%(1j. %j %F{yellow}%B⚙%b%F{reset}.)'
             ;;
