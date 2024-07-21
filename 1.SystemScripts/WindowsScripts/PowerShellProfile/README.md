@@ -5,9 +5,9 @@ First, create a cert use cert_script.ps1
 > Then you can get a cert on local.
 
 Second, cert your script
-> Same, you can not exec this script.  
-> You must copy & pasta command to powershell and exec.  
+> Use code block command to cert your script.
 > Then you can use script on your powershell.
+> When you script changed, you must cert your script again.
 
 ```
 $cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -eq "US=CSC" }  
