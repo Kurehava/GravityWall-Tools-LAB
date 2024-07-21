@@ -4,6 +4,7 @@ first, create a cert use cert_script.ps1
 > you must copy & pasta command to powershell and exec.  
 > then you can get a cert on local.
 
+
 second, cert your script
 > same, you can not exec this script.  
 > you must copy & pasta command to powershell and exec.  
