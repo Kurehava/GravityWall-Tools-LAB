@@ -8,6 +8,7 @@ If (-Not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 $script = ""
 $cer = "$HOME\certificate.cer"
 $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "US=CSC" -CertStoreLocation Cert:\CurrentUser\My
+Set-ExecutionPolicy -ExecutionPolicy AllSigned -Scope CurrentUser
 Export-Certificate -Cert $cert -FilePath $cer
 Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root
 Set-AuthenticodeSignature -FilePath $script -Certificate $cert
