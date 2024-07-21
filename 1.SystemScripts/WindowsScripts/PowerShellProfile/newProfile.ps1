@@ -2,12 +2,15 @@ $history = New-Object System.Collections.ArrayList
 $MAX_HISTORY = 500
 
 function prompt {
+    $ipAddress = (Get-NetIPAddress | Where-Object { $_.AddressFamily -eq 'IPv4' } | Select-Object -First 1 -Property IPAddress).IPAddress
     $isRoot = (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
     $color  = if ($isRoot) {"Red"} else {"DarkGreen"}
     $marker = if ($isRoot) {"#"}   else {"$"}
-    $ntime = Get-Date -UFormat "%T"
+    $ntime = Get-Date -Format "yyyy/MM/dd HH:mm:ss"
+    $history_node = @($history).Length
 
     Write-Host "[$ntime]" -ForegroundColor DarkYellow
+    Write-Host "[$ipAddress][hnode:$history_node]" -ForegroundColor DarkGreen
     Write-Host "[-]-" -ForegroundColor $color -nonewline
     Write-Host "$pwd\~" -ForegroundColor DarkCyan
     Write-Host "[=]-" -ForegroundColor $color -nonewline
