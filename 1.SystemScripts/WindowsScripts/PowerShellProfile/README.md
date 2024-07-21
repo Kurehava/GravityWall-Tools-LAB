@@ -1,12 +1,12 @@
 # cert your script
 first, create a cert use cert_script.ps1
-> you can not exec this script on windows.
-> you must copy & pasta command to powershell and exec.
+> you can not exec this script on windows.  
+> you must copy & pasta command to powershell and exec.  
 > then you can get a cert on local.
 
 second, cert your script
-> same, you can not exec this script.
-> you must copy & pasta command to powershell and exec.
+> same, you can not exec this script.  
+> you must copy & pasta command to powershell and exec.  
 > then you can use script on your powershell.
 """
 $cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -eq "US=CSC" }  
