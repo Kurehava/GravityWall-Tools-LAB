@@ -1,5 +1,5 @@
 # cert your script
-First, create a cert use cert_script.ps1
+First, create a cert use create_cert_command.ps1
 > * You can not exec this script on windows.  
 > * You must copy & pasta command to powershell and exec.  
 > * Then you can get a cert on local.
