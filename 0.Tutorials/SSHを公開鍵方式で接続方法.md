@@ -30,7 +30,7 @@
 
 ### - SSHのConfigファイルに予め設定を入れて、SSHホストネームで接続
 Windows : C:\\Users\\<ユーザー名>\\.ssh\\config に以下の内容を修正してから追加してください。  
-Linux : $HOME/.ssh/config に以下の内容を修正してから追加してください。
+Linux : $HOME/.ssh/config に以下の内容を修正してから追加してください。　　
 注意：ここでは、PUBファイルではないです。
 ```
 Host <ホスト名(任意)>
@@ -43,7 +43,7 @@ e.g.
 Host USER01_SSH
   HostName xxx.xxx.xxx.xxx
   User USER01
-  IdentityFile save/path/USER01
+  IdentityFile save/path/USER01 (not .pub file)
 ```
 追加出来ましたら、以下のコマンドで接続できます。  
 `ssh <ホスト名(任意)>`    
