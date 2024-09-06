@@ -1,6 +1,5 @@
 # cert your script
-First, create a cert use code block command.
-> * You can't exec this script on windows.  
+First, create a cert use code block command. 
 > * You must copy & pasta command to powershell and exec.  
 > * Then you can get a cert on local.
 
