@@ -42,6 +42,7 @@ case $os_plotform in
     "CentOS Linux") pkg_manage="yum";;
     "Red Hat Enterprise Linux") pkg_manage="yum";;
     "Debian GNU/Linux") pkg_manage="apt";;
+    "Parrot Security") pkg_manage="apt";;
     *) pkg_manage="yum";;
 esac
 echo -e "$info Pkg_manager : $pkg_manage"
