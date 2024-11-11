@@ -43,7 +43,7 @@ case $os_plotform in
     "Red Hat Enterprise Linux") pkg_manage="yum";;
     "Debian GNU/Linux") pkg_manage="apt";;
     "Parrot Security") pkg_manage="apt";;
-    *) pkg_manage="yum";;
+    *) pkg_manage="apt";;
 esac
 echo -e "$info Pkg_manager : $pkg_manage"
 
