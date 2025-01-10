@@ -26,7 +26,7 @@ configure_prompt() {
     else
         use_color="%F{green}"
     fi
-    ip_addr="`ifconfig eth0 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1`"
+    ip_addr="`ip a | awk '/^[0-9]+: / {if (NR > 1) printf "\n"; printf $2 " "} /^[ ]*inet / {printf $2 " "} END {print ""}' | grep ens | awk '{print $2}' | tr '\n' ',' | sed 's/,$/\n/' | sed 's:,:, :g`"
     if [ -z $ip_addr ];then
         ip_addr="`ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1`"
         container_checker=''
