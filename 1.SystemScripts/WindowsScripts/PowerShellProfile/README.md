@@ -14,11 +14,11 @@ Second, cert your script
 # PLZ run command on administrator.
 
 $cer = "$HOME\certificate.cer"
-$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "US=CSC" -CertStoreLocation Cert:\CurrentUser\My
+$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=CSC" -CertStoreLocation Cert:\CurrentUser\My
 Export-Certificate -Cert $cert -FilePath $cer
 Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root
 Remove-Item -Path $cer -Force
 
-$cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -eq "US=CSC" }  
+$cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -eq "CN=CSC" }  
 Set-AuthenticodeSignature -FilePath "$HOME\Documents\PowerShell\Microsoft.Powershell_profile.ps1" -Certificate $cert
 ```
