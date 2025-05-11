@@ -72,13 +72,10 @@ function nic(){
       if ($Sort -eq "Status") {
           $results | Sort-Object {[string]$_.Status -replace 'O','0' -replace 'X','1'} | Format-Table -AutoSize -Wrap
       } else {
-          # 他のカラムでソート
           $results | Sort-Object $Sort | Format-Table -AutoSize -Wrap
       }
   } else {
-      # 指定された Sort カラムが存在しない場合の処理
       Write-Host "Can not found `"$Sort`". Follow in Status Env." -ForegroundColor Red
-      # Status に従ってソート
       $results | Sort-Object {[string]$_.Status -replace 'O','0' -replace 'X','1'} | Format-Table -AutoSize -Wrap
   }
 }
