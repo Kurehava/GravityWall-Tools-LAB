@@ -2,8 +2,9 @@ $history = New-Object System.Collections.ArrayList
 $MAX_HISTORY = 500
 
 function prompt {
-    #$ipAddress = (Get-NetIPAddress | Where-Object { $_.AddressFamily -eq 'IPv4' -and $_.PrefixOrigin -ne 'WellKnown' } | Select-Object -Property IPAddress | Select-Object -Last 1).IPAddress    
     $ipAddress = Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway } | Select-Object -ExpandProperty IPAddress
+    #all ip
+    #$ipAddress = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.AddressState -eq 'Preferred' } | Select-Object -ExpandProperty IPAddress) -join ','
     $isRoot = (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
     $color  = if ($isRoot) {"Red"} else {"DarkGreen"}
     $marker = if ($isRoot) {"#"}   else {"$"}
