@@ -31,11 +31,11 @@
 
       > wget
         
-      `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+        `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
     
       > curl
         
-       `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+        `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
   
   2. 修改`~/.zshrc`文件中主题的设置
 
