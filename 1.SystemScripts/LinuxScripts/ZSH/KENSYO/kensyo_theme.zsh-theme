@@ -13,8 +13,45 @@ if [ -n "$force_color_prompt" ]; then
     fi
 fi
 
-function cp_fn(){
+cp_fn() {
     cp_fn_floder_path="`pwd | sed 's:/: :g' | awk '{print $NF}'`"
+}
+
+setopt prompt_subst
+
+__prompt_ipv4_up() {
+  ip -br -4 addr 2>/dev/null \
+  | awk '$2=="UP"{for(i=3;i<=NF;i++) a[++n]=$i}
+         END{for(i=1;i<=n;i++) printf "%s%s",a[i],(i<n?", ":"")}'
+}
+
+typeset -g ip_addr=""
+typeset -g container_checker=""
+typeset -g __ip_addr_last=""
+
+__refresh_ip_vars() {
+  local now="$(__prompt_ipv4_up)"
+
+  if [[ -z "$now" ]]; then
+    now="$(ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1)"
+    container_checker=""
+  else
+    container_checker='[KENSYO]'
+  fi
+
+  ip_addr="$now"
+}
+
+__refresh_ip_vars
+__ip_addr_last="$ip_addr"
+
+TMOUT=3
+TRAPALRM() {
+  __refresh_ip_vars
+  if [[ "$ip_addr" != "$__ip_addr_last" ]]; then
+    __ip_addr_last="$ip_addr"
+    zle && zle reset-prompt
+  fi
 }
 
 configure_prompt() {
@@ -26,25 +63,17 @@ configure_prompt() {
     else
         use_color="%F{green}"
     fi
-    // ip_addr="`ip a | awk '/^[0-9]+: / {if (NR > 1) printf "\n"; printf $2 " "} /^[ ]*inet / {printf $2 " "} END {print ""}' | grep -E '(ens|eth|wls)' | awk '{print $2}' | tr '\n' ',' | sed 's/,$/\n/' | sed 's:,:, :g'`"
-    ip_addr="`ip -br addr | awk '$2=="UP"{for(i=3;i<=NF;i++) if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+$/) a[++n]=$i} END{for(i=1;i<=n;i++) printf "%s%s",a[i],(i<n?", ":"\n")}'`"
-    if [ -z $ip_addr ];then
-        ip_addr="`ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1`"
-        container_checker=''
-    else
-        container_checher='[KENSYO]'
-    fi
+
     case "$PROMPT_ALTERNATIVE" in
         twoline)
             path_c="`pwd`"
             yellow_c="%F{yellow}"
             red_c="%F{red}"
             cyan_c="%F{cyan}"
-            write_c="%F{write}"
+            write_c="%F{white}"
             green_c="%F{green}"
             cp_fn
-            # PROMPT=$'%F{%(#.blue.green)}┌──%{$fg[green]%}[%D{%H:%M:%S}][KENSYOENV]${debian_chroot:+($debian_chroot)─}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))─}(%B%F{%(#.red.blue)}%n%F{%(#.red.red)}::%F{%(#.red.blue)}%m%b%F{%(#.blue.green)})-[%B%F{red}%(6~.%-1~/…/%4~.%5~)%b%F{%(#.blue.green)}]\n└─%B%(#.%F{red}#.%F{blue}$)%b%F{reset} '
-            PROMPT=$'${green_c}$container_checher${yellow_c}[%D{%H:%M:%S}]\n[IP: $ip_addr]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
+            PROMPT=$'${green_c}$container_checker${yellow_c}[%D{%H:%M:%S}]\n[IP: $ip_addr]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
             # Right-side prompt with exit codes and background processes
             #RPROMPT=$'%(?.. %? %F{red}%B⨯%b%F{reset})%(1j. %j %F{yellow}%B⚙%b%F{reset}.)'
             ;;
@@ -146,6 +175,9 @@ xterm*|rxvt*|Eterm|aterm|kterm|gnome*|alacritty)
 esac
 
 precmd() {
+    # Refresh dynamic vars every time prompt is about to show
+    __refresh_ip_vars
+
     # Print the previously configured title
     print -Pnr -- "$TERM_TITLE"
 
