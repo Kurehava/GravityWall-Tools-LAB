@@ -1,4 +1,5 @@
 # author：橘陽 (kurehava) ちずる
+# Based Kali ZSH Theme.
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 force_color_prompt=yes
