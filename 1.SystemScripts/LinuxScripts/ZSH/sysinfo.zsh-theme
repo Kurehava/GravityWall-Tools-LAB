@@ -22,7 +22,7 @@ __prompt_ipv4_up() {
          END{for(i=1;i<=n;i++) printf "%s%s",a[i],(i<n?", ":"")}'
 }
 
-# Host tag: hostname -s -> hostname -> KENSYO
+# Host tag: hostname -s -> hostname -> SYSINFO
 __prompt_host_tag() {
   local h=""
   h="$(hostname -s 2>/dev/null)"
@@ -32,7 +32,7 @@ __prompt_host_tag() {
 }
 
 typeset -g ip_addr=""
-typeset -g host_tag="KENSYO"
+typeset -g host_tag="SYSINFO"
 typeset -g container_line=""
 typeset -g __ip_addr_last=""
 typeset -g __host_tag_last=""
