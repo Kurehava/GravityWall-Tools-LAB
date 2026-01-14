@@ -27,7 +27,7 @@
   
   国内用户请在https前加上`https://ghproxy.com/`再下载
 
-  1. 使用curl或者wget下载主题
+  1. 使用`curl`或者`wget`下载主题
 
       > wget
         
