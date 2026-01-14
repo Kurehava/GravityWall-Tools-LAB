@@ -29,15 +29,15 @@
 
   1. 使用curl或者wget下载主题
 
-  > wget
+      > wget
+        
+      `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
     
-  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
-
-  > curl
-    
-   `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+      > curl
+        
+       `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
   
-  3. 修改`~/.zshrc`文件中主题的设置
+  2. 修改`~/.zshrc`文件中主题的设置
 
      `sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc"`
 
