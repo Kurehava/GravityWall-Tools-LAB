@@ -9,11 +9,11 @@
 
   `bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL_AUTO.sh")`
   
-  国内用户可以用以下的命令
+  > 中国大陆用户可以用以下的命令
   
   `bash <(curl -s -L "https://ghproxy.com/https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL.sh")`
   
-  可以用以下的网址获取短址
+  > 可以用以下的网址获取短链
   
   `https://bitly.com/`
 
@@ -32,13 +32,11 @@
  
  1.`curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
  
- 2.```sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc"```
+ 2.`sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc"`
 
 # 替换老主题文件方法
-```
-# User
-curl https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme > /home/$(whoami)/.oh-my-zsh/themes/sysinfo.zsh-theme && source /home/$(whoami)/.zshrc
+  > User
+  `curl https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme > /home/$(whoami)/.oh-my-zsh/themes/sysinfo.zsh-theme && source /home/$(whoami)/.zshrc`
 
-# Root
-curl https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme > /root/.oh-my-zsh/themes/sysinfo.zsh-theme && source /root/.zshrc
-```
+  > Root
+  `curl https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme > /root/.oh-my-zsh/themes/sysinfo.zsh-theme && source /root/.zshrc`
