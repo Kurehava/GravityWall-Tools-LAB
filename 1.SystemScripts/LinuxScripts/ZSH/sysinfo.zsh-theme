@@ -26,9 +26,9 @@ __prompt_ipv4_up() {
 
 __prompt_host_tag() {
   local h=""
-  h="$(hostname -s 2>/dev/null)"
-  [[ -z "$h" ]] && h="$(hostname 2>/dev/null)"
-  [[ -z "$h" ]] && h="SYSINFO"
+  h="HOST:$(hostname -s 2>/dev/null)"
+  [[ -z "$h" ]] && h="HOST:$(hostname 2>/dev/null)"
+  [[ -z "$h" ]] && h="HOST:SYSINFO"
   print -r -- "$h"
 }
 
@@ -40,9 +40,11 @@ typeset -g __host_tag_last=""
 
 __detect_container_line() {
   local is_container=0
+  local virt=""
 
   if command -v systemd-detect-virt >/dev/null 2>&1; then
-    if systemd-detect-virt -cq 2>/dev/null; then
+    virt="$(systemd-detect-virt -c 2>/dev/null)"
+    if [[ -n "$virt" && "$virt" != "none" && "$virt" != "wsl" ]]; then
       is_container=1
     fi
   fi
@@ -58,7 +60,37 @@ __detect_container_line() {
   fi
 
   if (( is_container )); then
-    container_line=$'%F{#75C8FF}[Container]%f\n'
+    container_line="%F{#75C8FF}[Container]%f"$'\n'
+    return
+  fi
+
+  local is_wsl=0
+  local wsl_ver=""
+  local osrel=""
+
+  if [[ -n "$WSL_INTEROP" || -n "$WSL_DISTRO_NAME" || -n "$WSLENV" ]]; then
+    is_wsl=1
+  fi
+
+  if (( ! is_wsl )); then
+    osrel="$(cat /proc/sys/kernel/osrelease 2>/dev/null)"
+    [[ -z "$osrel" ]] && osrel="$(uname -r 2>/dev/null)"
+    echo "$osrel" | grep -qi microsoft && is_wsl=1
+    if (( ! is_wsl )); then
+      grep -qi microsoft /proc/version 2>/dev/null && is_wsl=1
+    fi
+  else
+    osrel="$(cat /proc/sys/kernel/osrelease 2>/dev/null)"
+    [[ -z "$osrel" ]] && osrel="$(uname -r 2>/dev/null)"
+  fi
+
+  if (( is_wsl )); then
+    if [[ -n "$WSL_INTEROP" ]] || echo "$osrel" | grep -qiE '(wsl2|microsoft-standard)'; then
+      wsl_ver="Windows Subsystem Linux Ver.2"
+    else
+      wsl_ver="Windows Subsystem Linux Ver.1"
+    fi
+    container_line="%F{#75C8FF}[${wsl_ver}]%f"$'\n'
   else
     container_line=""
   fi
