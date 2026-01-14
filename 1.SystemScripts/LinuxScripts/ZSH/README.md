@@ -13,7 +13,7 @@
 
   `bash <(curl -s -L "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL_MacOS.sh")`
   
-  > 中国大陆用户可以用以下的命令
+  > 中国大陆(国内)用户可以用以下的命令
   
   `bash <(curl -s -L "https://ghproxy.com/https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL.sh")`
   
@@ -29,7 +29,7 @@
 
   这个是自制的ZSH主题, 修改自Kali官方主题, 需要先安装好oh-my-zsh
   
-  国内用户请在https前加上`https://ghproxy.com/`再下载
+  中国大陆(国内)用户请在https前加上`https://ghproxy.com/`再下载
 
   1. 使用`curl`或者`wget`下载主题
 
