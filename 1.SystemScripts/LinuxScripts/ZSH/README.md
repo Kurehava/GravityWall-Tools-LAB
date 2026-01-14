@@ -47,3 +47,6 @@
 
 # 替换老主题文件方法
   `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme" && sed -i 's:ZSH_THEME="kensyo":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc" && rm "$(echo ~)/.oh-my-zsh/themes/kensyo.zsh-theme" && source "$(echo ~)/.zshrc"`
+
+# 更新主题文件方法
+  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme" && source "$(echo ~)/.zshrc"`
