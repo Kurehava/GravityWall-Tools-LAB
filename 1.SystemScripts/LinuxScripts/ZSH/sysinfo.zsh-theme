@@ -1,4 +1,4 @@
-# author：橘陽ちずる
+# author：橘陽 (kurehava) ちずる
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 force_color_prompt=yes
