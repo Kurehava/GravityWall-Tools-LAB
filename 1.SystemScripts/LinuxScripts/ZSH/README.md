@@ -28,9 +28,13 @@
   国内用户请在https前加上`https://ghproxy.com/`再下载
 
   1. 使用curl或者wget下载主题
-  
+
+    > wget
+    
      `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
 
+    > curl
+    
      `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
   
   3. 修改`~/.zshrc`文件中主题的设置
