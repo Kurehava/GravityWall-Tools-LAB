@@ -1,3 +1,4 @@
+# author：橘陽ちずる
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 force_color_prompt=yes
