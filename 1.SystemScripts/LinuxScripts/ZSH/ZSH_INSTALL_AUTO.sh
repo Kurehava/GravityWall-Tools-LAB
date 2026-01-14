@@ -216,10 +216,10 @@ omz_themes="$omz_home/themes"
 omz_plugins="$omz_home/plugins"
 
 # get kurehava zsh theme
-`$download_command "${boots_proxy}https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/kensyo_theme.zsh-theme" > "$omz_themes/kensyo.zsh-theme"`
+`$download_command "${boots_proxy}https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" > "$omz_themes/sysinfo.zsh-theme"`
 
 # change theme to kurehava conda theme
-$(sed -i s:robbyrussell:kensyo:g "$user_root/.zshrc")
+$(sed -i s:robbyrussell:sysinfo:g "$user_root/.zshrc")
 
 # install plugins
 $(sed -i 's:plugins=(git):plugins=(git z extract):g' "$user_root/.zshrc")
