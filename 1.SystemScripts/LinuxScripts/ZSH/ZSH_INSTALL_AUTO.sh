@@ -7,16 +7,6 @@ warn="[\033[93mWARN\033[0m]"
 dbug="[\033[95mDBUG\033[0m]"
 user_root="$(echo ~)"
 
-# check county boost
-# while :;do
-#     echo -e "$info Do you need github boost?[Y/N] \c"
-#     read ccb
-#     case $ccb in
-#         Y|y) boost_flag=1;boots_proxy="https://ghproxy.com/";break;;
-#         N|n) boost_flag=0;boots_proxy="";break;;
-#         *) echo -e "$warn input $select is illegal, plz reinput."
-#     esac
-# done
 boost_flag=0
 boots_proxy=""
 
@@ -50,7 +40,9 @@ echo -e "$info Platform : $os_plotform"
 case $os_plotform in
     "Ubuntu") pkg_manage="apt";;
     "CentOS Linux") pkg_manage="yum";;
+    "Red Hat Enterprise Linux") pkg_manage="yum";;
     "Debian GNU/Linux") pkg_manage="apt";;
+    "Parrot Security") pkg_manage="apt";;
     *) pkg_manage="apt";;
 esac
 echo -e "$info Pkg_manager : $pkg_manage"
@@ -149,15 +141,6 @@ function shell_check(){
 shell_check
 
 if [ $have_zsh = "no" ];then
-    # while :;do
-    #     echo -e "$warn can not found zsh, do you want install zsh?[Y/N] \c"
-    #     read zsh_install
-    #     case $zsh_install in
-    #         Y|y) echo -e "$info + $root_sudo $pkg_manage install -y zsh";$root_sudo $pkg_manage install -y zsh;break;;
-    #         N|n) echo -e "$erro not zsh env. exit.";exit 1;;
-    #         *) echo -e "$warn input $zsh_install illegal, plz reinput.";;
-    #     esac
-    # done
     echo -e "$info + $root_sudo $pkg_manage install -y zsh"
     $root_sudo $pkg_manage install -y zsh
 fi
@@ -216,45 +199,13 @@ omz_themes="$omz_home/themes"
 omz_plugins="$omz_home/plugins"
 
 # get kurehava zsh theme
-`$download_command "${boots_proxy}https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" > "$omz_themes/sysinfo.zsh-theme"`
+`$download_command "${boots_proxy}https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/KENSYO/kensyo_theme.zsh-theme" > "$omz_themes/kensyo.zsh-theme"`
 
 # change theme to kurehava conda theme
-$(sed -i s:robbyrussell:sysinfo:g "$user_root/.zshrc")
+$(sed -i s:robbyrussell::g "$user_root/.zshrc")
 
 # install plugins
 $(sed -i 's:plugins=(git):plugins=(git z extract):g' "$user_root/.zshrc")
-
-incr_path="$omz_plugins/incr"
-mkdir "$incr_path"
-case $download_command in
-    "wget") echo -e "$info DOWNLOAD Plugin: zsh-autosuggestions"
-            wget "http://mimosa-pudica.net/src/incr-0.2.zsh" -P "$incr_path"
-            incr_install=true
-            ;;
-    "curl") echo -e "$info DOWNLOAD Plugin: zsh-autosuggestions"
-            curl -L "http://mimosa-pudica.net/src/incr-0.2.zsh" -o "$incr_path/incr-0.2.zsh"
-            incr_install=true
-            ;;
-    *) echo -e "$warn Unknown download tool, skip the incr installation for safety reasons."
-       echo -e "$warn You can do the manual installation later with the following command."
-       echo -e "$warn + wget 'http://mimosa-pudica.net/src/incr-0.2.zsh' -P \"$incr_path\""
-       echo -e "$warn + curl 'http://mimosa-pudica.net/src/incr-0.2.zsh' -o \"$incr_path/incr-0.2.zsh\""
-       incr_install=false
-       ;;
-esac
-if $incr_install;then
-    if [ -f "$incr_path/incr-0.2.zsh" ];then
-        echo -e "source $incr_path/incr-0.2.zsh" >> "$user_root/.zshrc"
-        echo -e "$info WRITE: source $incr_path/incr-0.2.zsh >> $user_root/.zshrc"
-    else
-        echo -e "$warn can not found $incr_path/incr-0.2.zsh"
-        echo -e "$warn skip writing incr source to the .zshrc file for security."
-        echo -e "$warn You can do the manual installation later with the following command."
-        echo -e "$warn + wget 'http://mimosa-pudica.net/src/incr-0.2.zsh' -P \"$incr_path\""
-        echo -e "$warn + curl 'http://mimosa-pudica.net/src/incr-0.2.zsh' -o \"$incr_path/incr-0.2.zsh\""
-        echo -e "$warn + source $incr_path/incr-0.2.zsh >> $user_root/.zshrc"
-    fi
-fi
 
 za_path="$omz_plugins/zsh-autosuggestions"
 echo -e "$info DOWNLOAD Plugin: zsh-autosuggestions"
@@ -289,7 +240,7 @@ fi
 
 # change def shell
 echo -e "$info change sh to ZSH."
-chsh -s /bin/zsh $(whoami)
+sudo chsh -s /bin/zsh $(whoami)
 if [ "$?" != "0" ];then
     echo -e "$warn For unknown reasons, we cannot change zsh for you."
     echo -e "$warn Please manually change zsh later to apply the changes."
@@ -299,31 +250,5 @@ if [ "$?" != "0" ];then
     echo -e "$warn script exit."
     exit 1
 fi
-
-# while :;do
-#     echo -e "$info Now we need root."
-#     echo -e "$info Do you want to automatically reboot now or manually reboot later?[N/L] \c"
-#     read time_
-#     case $time_ in
-#         L|l) echo -e "$info If you want the configuration to take effect,"
-#              echo -e "$info Please remember to manually reboot later."
-#              exit 0
-#              ;;
-#         N|n) if [ "$root_sudo" = "sudo " ];then
-#                 sudo reboot
-#              else
-#                 reboot
-#              fi
-#              if [ "$?" != "0" ];then
-#                 echo -e "$warn For unknown reasons, we cannot reboot the environment for you."
-#                 echo -e "$warn Please manually restart your environment later to apply the changes."
-#                 echo -e "$warn script exit."
-#                 exit 1
-#              fi
-#              exit 0
-#              ;;
-#         *) echo -e "$warn input $select is illegal, plz reinput."
-#     esac
-# done
 
 echo "Process done."
