@@ -26,14 +26,16 @@
   这个是自制的ZSH主题, 修改自Kali官方主题, 需要先安装好oh-my-zsh
   
   国内用户请在https前加上`https://ghproxy.com/`再下载
+
+  1. 使用curl或者wget下载主题
   
- 1.`wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
- 
- or 
- 
- 1.`curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
- 
- 2.`sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc"`
+     `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+
+     `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+  
+  3. 修改`~/.zshrc`文件中主题的设置
+
+     `sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc"`
 
 # 替换老主题文件方法
   > User
