@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="sysinfo"
-THEME_VERSION="2026.01.15.2"
+THEME_VERSION="2026.01.15.4"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
 
