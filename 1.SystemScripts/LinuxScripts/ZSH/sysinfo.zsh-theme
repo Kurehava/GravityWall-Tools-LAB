@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="sysinfo"
-THEME_VERSION="2026.01.15.4"
+THEME_VERSION="2026.01.15.1"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
 
@@ -58,7 +58,7 @@ typeset -g __host_tag_last=""
 __detect_container_line() {
   # Priority:
   # 1) Real container => [Container]
-  # 2) WSL (not in container) => [Windows Subsystem Linux Ver.1]/[Windows Subsystem Linux Ver.2]
+  # 2) WSL (not in container) => [WSL1]/[WSL2]
   # 3) else => empty
 
   local is_container=0
@@ -168,6 +168,8 @@ NEWLINE_BEFORE_PROMPT=yes
 # - Compare numeric dotted versions properly (e.g. 2026.01.15.10 > 2026.01.15.2)
 # - Strong guardrails against bad remote content / human mistakes
 # ---------------------------
+
+typeset -g __THEME_UPDATE_RELOADING="${__THEME_UPDATE_RELOADING:-0}"
 
 __theme_version_is_valid() {
   # Accept only dotted numeric versions: 1.2.3 / 2026.01.15.1 etc.
@@ -284,22 +286,24 @@ theme-update() {
 
   cp -a "$self_file" "${self_file}.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null
   mv -f "$tmp" "$self_file"
+  echo "Theme updated to $remote_ver."
 
-  # Auto reload
-  typeset -g __THEME_RELOADING=1
-  if [[ -r "$HOME/.zshrc" ]]; then
-    source "$HOME/.zshrc"
+  # Auto-apply changes
+  local zrc="${ZDOTDIR:-$HOME}/.zshrc"
+  __THEME_UPDATE_RELOADING=1
+  if [[ -r "$zrc" ]]; then
+    source "$zrc"
   else
     source "$self_file"
   fi
-  unset __THEME_RELOADING
+  __THEME_UPDATE_RELOADING=0
 
-  echo "Theme updated to $remote_ver and reloaded."
+  zle && zle reset-prompt
 }
 
 __theme_check_update_on_login() {
   [[ -o interactive ]] || return 0
-  [[ -n "${__THEME_RELOADING-}" ]] && return 0
+  [[ "${__THEME_UPDATE_RELOADING:-0}" == "1" ]] && return 0
 
   if ! __theme_version_is_valid "$THEME_VERSION"; then
     print -P "%F{red}[Theme]%f Local THEME_VERSION invalid: %F{yellow}${THEME_VERSION}%f. Skip update check."
