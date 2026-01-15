@@ -25,7 +25,7 @@
   
   ⚠ 为多个用户安装zsh时，需要切换到对应用户下再次执行本脚本。
 
-# sysinfo.zsh-theme
+# Chizuru.zsh-theme
 
   这个是自制的ZSH主题, 修改自Kali官方主题, 需要先安装好oh-my-zsh
   
@@ -35,18 +35,18 @@
 
       > wget
         
-        `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+        `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme"`
     
       > curl
         
-        `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme"`
+        `curl "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -o "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme"`
   
   2. 修改`~/.zshrc`文件中主题的设置
 
-     `sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc"`
+     `sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="Chizuru":g' "$(echo ~)/.zshrc"`
 
 # 替换老主题文件方法
-  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme" && sed -i 's:ZSH_THEME="kensyo":ZSH_THEME="sysinfo":g' "$(echo ~)/.zshrc" && rm "$(echo ~)/.oh-my-zsh/themes/kensyo.zsh-theme" && source "$(echo ~)/.zshrc"`
+  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme" && sed -i 's:ZSH_THEME="kensyo":ZSH_THEME="Chizuru":g' "$(echo ~)/.zshrc" && rm "$(echo ~)/.oh-my-zsh/themes/kensyo.zsh-theme" && source "$(echo ~)/.zshrc"`
 
 # 更新主题文件方法
-  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme" && source "$(echo ~)/.zshrc"`
+  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme" && source "$(echo ~)/.zshrc"`
