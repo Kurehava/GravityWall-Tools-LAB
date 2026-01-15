@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="sysinfo"
-THEME_VERSION="2026.01.15.2"
+THEME_VERSION="2026.01.15.3"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
 
@@ -58,7 +58,7 @@ typeset -g __host_tag_last=""
 __detect_container_line() {
   # Priority:
   # 1) Real container => [Container]
-  # 2) WSL (not in container) => [WSL1]/[WSL2]
+  # 2) WSL (not in container) => [Windows Subsystem Linux Ver.1]/[Windows Subsystem Linux Ver.2]
   # 3) else => empty
 
   local is_container=0
@@ -284,11 +284,22 @@ theme-update() {
 
   cp -a "$self_file" "${self_file}.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null
   mv -f "$tmp" "$self_file"
-  echo "Theme updated to $remote_ver. Please run: source ~/.zshrc (or restart terminal)"
+
+  # Auto reload
+  typeset -g __THEME_RELOADING=1
+  if [[ -r "$HOME/.zshrc" ]]; then
+    source "$HOME/.zshrc"
+  else
+    source "$self_file"
+  fi
+  unset __THEME_RELOADING
+
+  echo "Theme updated to $remote_ver and reloaded."
 }
 
 __theme_check_update_on_login() {
   [[ -o interactive ]] || return 0
+  [[ -n "${__THEME_RELOADING-}" ]] && return 0
 
   if ! __theme_version_is_valid "$THEME_VERSION"; then
     print -P "%F{red}[Theme]%f Local THEME_VERSION invalid: %F{yellow}${THEME_VERSION}%f. Skip update check."
