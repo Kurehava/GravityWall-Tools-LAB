@@ -2,9 +2,10 @@
 # Based Kali ZSH Theme.
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
-THEME_NAME="sysinfo"
-THEME_VERSION="2026.01.15.6"
-THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme"
+THEME_NAME="chizuru"
+THEME_VERSION="2026.01.15.7"
+THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
+THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
 
 force_color_prompt=yes
@@ -45,12 +46,12 @@ __prompt_host_tag() {
   local h=""
   h="$(hostname -s 2>/dev/null)"
   [[ -z "$h" ]] && h="$(hostname 2>/dev/null)"
-  [[ -z "$h" ]] && h="SYSINFO"
+  [[ -z "$h" ]] && h="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
   print -r -- "$h"
 }
 
 typeset -g ip_addr=""
-typeset -g host_tag="SYSINFO"
+typeset -g host_tag="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
 typeset -g container_line=""
 typeset -g __ip_addr_last=""
 typeset -g __host_tag_last=""
