@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="sysinfo"
-THEME_VERSION="2026.01.15.2"
+THEME_VERSION="2026.01.15.5"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
 
@@ -108,7 +108,8 @@ __detect_container_line() {
   if (( is_wsl )); then
     # WSL2: WSL_INTEROP present OR osrelease matches common WSL2 patterns
     if [[ -n "$WSL_INTEROP" ]] || echo "$osrel" | grep -qiE '(wsl2|microsoft-standard)'; then
-      wsl_ver="Windows Subsystem Linux Ver.2"
+      # wsl_ver="Windows Subsystem Linux Ver.2"
+      wsl_ver="WSL2"
     else
       wsl_ver="Windows Subsystem Linux Ver.1"
     fi
