@@ -45,8 +45,11 @@
 
      `sed -i 's:ZSH_THEME="robbyrussell":ZSH_THEME="Chizuru":g' "$(echo ~)/.zshrc"`
 
-# 替换老主题文件方法
+# 替换kensyo主题为Chizuru主题
   `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme" && sed -i 's:ZSH_THEME="kensyo":ZSH_THEME="Chizuru":g' "$(echo ~)/.zshrc" && rm "$(echo ~)/.oh-my-zsh/themes/kensyo.zsh-theme" && source "$(echo ~)/.zshrc"`
 
-# 更新主题文件方法
+# 替换sysinfo主题为Chizuru主题
+  `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme" && sed -i 's:ZSH_THEME="sysinfo":ZSH_THEME="Chizuru":g' "$(echo ~)/.zshrc" && rm "$(echo ~)/.oh-my-zsh/themes/sysinfo.zsh-theme" && source "$(echo ~)/.zshrc"`
+
+# 手动更新主题文件的方法
   `wget "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" -O "$(echo ~)/.oh-my-zsh/themes/Chizuru.zsh-theme" && source "$(echo ~)/.zshrc"`
