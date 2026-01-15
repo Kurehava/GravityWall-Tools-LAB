@@ -5,6 +5,7 @@
 THEME_NAME="sysinfo"
 THEME_VERSION="2026.01.15.2"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/sysinfo.zsh-theme"
+typeset -g THEME_SELF_FILE="${(%):-%x}"
 
 force_color_prompt=yes
 
@@ -222,7 +223,17 @@ __theme_get_remote_version() {
 theme-update() {
   command -v curl >/dev/null 2>&1 || { echo "curl not found"; return 1; }
 
-  local self_file="${(%):-%N}"
+  local self_file="${THEME_SELF_FILE:-}"
+
+  # Make absolute if possible (zsh feature)
+  [[ -n "$self_file" ]] && self_file="${self_file:A}"
+
+  # If still empty, fallback to funcfiletrace (last resort)
+  if [[ -z "$self_file" && -n "${funcfiletrace[1]-}" ]]; then
+    self_file="${funcfiletrace[1]%%:*}"
+    [[ -n "$self_file" ]] && self_file="${self_file:A}"
+  fi
+
   [[ -z "$self_file" || ! -w "$self_file" ]] && { echo "Cannot write theme file: $self_file"; return 1; }
 
   local tmp="${self_file}.tmp.$$"
