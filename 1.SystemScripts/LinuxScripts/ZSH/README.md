@@ -1,5 +1,6 @@
 # 以防万一写在最前面！
   主题默认在最前面显示host名，你可以手动编辑.oh-my-zsh/theme/Chizuru.zsh-theme文件的display_name参数来达到自定义的目的！
+  修改完成后需要手动 source .zshrc 一下。或者重新登录一下就好了。
 
 # ZSH_INSTALL.sh
   
