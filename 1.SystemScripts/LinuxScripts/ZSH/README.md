@@ -1,3 +1,6 @@
+# 以防万一写在最前面！
+  主题默认在最前面显示host名，你可以手动编辑.oh-my-zsh/theme/Chizuru.zsh-theme文件的display_name参数来达到自定义的目的！
+
 # ZSH_INSTALL.sh
   
   这个是ZSH自动安装脚本, 可以使用命令一键安装
