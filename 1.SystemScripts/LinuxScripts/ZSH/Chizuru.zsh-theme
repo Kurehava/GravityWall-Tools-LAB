@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.02.12.1"
+THEME_VERSION="2026.02.12.2"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -500,6 +500,9 @@ __theme_check_update_on_login() {
     print -P "%F{yellow}[Theme]%f Skipped."
   fi
 }
+
+# Manual update command
+chizuru-update() { theme-update "$@"; }
 # ---------------------------
 
 if [ "$color_prompt" = yes ]; then
