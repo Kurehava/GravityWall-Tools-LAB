@@ -3,10 +3,17 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.01.15.8"
+THEME_VERSION="2026.02.12.1"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
+
+# ---------------------------
+# User-configurable display name (highest priority)
+# - default empty: show hostname
+# - set: show this value instead of hostname
+# ---------------------------
+typeset -g display_name=""
 
 force_color_prompt=yes
 
@@ -42,8 +49,27 @@ __prompt_ipv4_up() {
       }'
 }
 
+__prompt_env_tag() {
+  local env=""
+  if [[ -n "${CONDA_DEFAULT_ENV:-}" ]]; then
+    env="$CONDA_DEFAULT_ENV"
+  elif [[ -n "${VIRTUAL_ENV:-}" ]]; then
+    env="${VIRTUAL_ENV:t}"
+  fi
+  [[ -n "$env" ]] && print -r -- "$env"
+}
+
 __prompt_host_tag() {
+  # Priority:
+  # 1) display_name (if set)
+  # 2) hostname
+  # 3) THEME_HOST_FALLBACK_NAME
   local h=""
+  if [[ -n "${display_name:-}" ]]; then
+    h="$display_name"
+    print -r -- "$h"
+    return
+  fi
   h="$(hostname -s 2>/dev/null)"
   [[ -z "$h" ]] && h="$(hostname 2>/dev/null)"
   [[ -z "$h" ]] && h="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
@@ -52,9 +78,114 @@ __prompt_host_tag() {
 
 typeset -g ip_addr=""
 typeset -g host_tag="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
+typeset -g env_tag=""
+typeset -g env_prefix=""
 typeset -g container_line=""
+typeset -g time_str=""
+typeset -g hnode_count=0
 typeset -g __ip_addr_last=""
 typeset -g __host_tag_last=""
+typeset -g __env_tag_last=""
+typeset -g __time_str_last=""
+typeset -g __hnode_count_last=0
+
+# ---------------------------
+# Directory jump history (in-memory)
+# - record "previous directory" on each chpwd
+# - historys: list or jump (truncate after jumping)
+# - back: jump to last recorded previous dir (truncate)
+# - max 1000
+# ---------------------------
+typeset -ga __cd_history
+typeset -g __cd_last_pwd=""
+
+__cd_history_push() {
+  local old="$1"
+  [[ -z "$old" ]] && return
+  # ignore duplicates at tail
+  if (( ${#__cd_history[@]} > 0 )) && [[ "${__cd_history[-1]}" == "$old" ]]; then
+    return
+  fi
+  __cd_history+=("$old")
+  # trim to max 1000 (drop oldest)
+  while (( ${#__cd_history[@]} > 1000 )); do
+    __cd_history[1]=()
+  done
+  hnode_count=${#__cd_history[@]}
+}
+
+__cd_history_truncate_from() {
+  # remove entries from index..end (inclusive)
+  local idx="$1"
+  local n=${#__cd_history[@]}
+  if (( n <= 0 )); then
+    hnode_count=0
+    return
+  fi
+  if (( idx < 1 || idx > n )); then
+    return 1
+  fi
+  __cd_history[$idx,-1]=()
+  hnode_count=${#__cd_history[@]}
+}
+
+historys() {
+  local n=${#__cd_history[@]}
+  if (( n == 0 )); then
+    echo "no result"
+    return 0
+  fi
+
+  if [[ -z "${1:-}" ]]; then
+    local i=1
+    for (( i=1; i<=n; i++ )); do
+      # align index to 4 chars (fits 1000 max), and keep paths aligned
+      printf "%4d: %s\n" "$i" "${__cd_history[i]}"
+    done
+    return 0
+  fi
+
+  local idx="$1"
+  if ! [[ "$idx" =~ '^[0-9]+$' ]]; then
+    echo "Usage: historys [index]"
+    return 1
+  fi
+  if (( idx < 1 || idx > n )); then
+    echo "Index out of range (1..$n)"
+    return 1
+  fi
+
+  local target="${__cd_history[idx]}"
+  # cd first, then truncate idx..end
+  builtin cd -- "$target" || return 1
+  __cd_history_truncate_from "$idx" >/dev/null
+  zle && zle reset-prompt
+}
+
+back() {
+  local n=${#__cd_history[@]}
+  if (( n == 0 )); then
+    echo "no result"
+    return 0
+  fi
+  local target="${__cd_history[-1]}"
+  builtin cd -- "$target" || return 1
+  __cd_history_truncate_from "$n" >/dev/null
+  zle && zle reset-prompt
+}
+
+chpwd() {
+  # record previous dir (before this cd) if known
+  if [[ -n "${__cd_last_pwd:-}" && "${__cd_last_pwd}" != "$PWD" ]]; then
+    __cd_history_push "$__cd_last_pwd"
+  fi
+  __cd_last_pwd="$PWD"
+  zle && zle reset-prompt
+}
+
+# init last pwd
+__cd_last_pwd="$PWD"
+hnode_count=${#__cd_history[@]}
 
 __detect_container_line() {
   # Priority:
@@ -123,25 +254,49 @@ __detect_container_line
 __refresh_prompt_vars() {
   local now_ip="$(__prompt_ipv4_up)"
   local now_host="$(__prompt_host_tag)"
+  local now_env="$(__prompt_env_tag)"
 
   host_tag="$now_host"
+  env_tag="$now_env"
+  if [[ -n "$env_tag" ]]; then
+    # reddish-orange for venv/conda tag (including brackets)
+    # IMPORTANT: restore green after env tag so host/hnode stays green
+    env_prefix="%F{#FF8A3D}[${env_tag}]%f%F{green}"
+  else
+    env_prefix=""
+  fi
 
   if [[ -z "$now_ip" ]]; then
     now_ip="$(ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1)"
   fi
   ip_addr="$now_ip"
+
+  time_str="$(date +%H:%M:%S 2>/dev/null)"
+  hnode_count=${#__cd_history[@]}
 }
 
 __refresh_prompt_vars
 __ip_addr_last="$ip_addr"
 __host_tag_last="$host_tag"
+__env_tag_last="$env_tag"
+__time_str_last="$time_str"
+__hnode_count_last=$hnode_count
 
-TMOUT=3
+# For "real-time" time display we redraw periodically while waiting for input.
+# Note: this is interactive-only behavior.
+TMOUT=1
 TRAPALRM() {
   __refresh_prompt_vars
-  if [[ "$ip_addr" != "$__ip_addr_last" || "$host_tag" != "$__host_tag_last" ]]; then
+  if [[ "$ip_addr" != "$__ip_addr_last" \
+     || "$host_tag" != "$__host_tag_last" \
+     || "$env_tag" != "$__env_tag_last" \
+     || "$time_str" != "$__time_str_last" \
+     || "$hnode_count" -ne "$__hnode_count_last" ]]; then
     __ip_addr_last="$ip_addr"
     __host_tag_last="$host_tag"
+    __env_tag_last="$env_tag"
+    __time_str_last="$time_str"
+    __hnode_count_last=$hnode_count
     zle && zle reset-prompt
   fi
 }
@@ -159,7 +314,7 @@ configure_prompt() {
     green_c="%F{green}"
     cp_fn
 
-    PROMPT=$'${container_line}${green_c}[${host_tag}]${yellow_c}[%D{%H:%M:%S}]\n[IP: ${ip_addr}]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
+    PROMPT=$'${container_line}${green_c}${env_prefix}[${host_tag}][hnode: ${hnode_count}]${yellow_c}[${time_str}]\n[IP: ${ip_addr}]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
 }
 
 NEWLINE_BEFORE_PROMPT=yes
