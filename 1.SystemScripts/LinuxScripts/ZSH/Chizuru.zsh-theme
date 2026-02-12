@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.02.12.2"
+THEME_VERSION="2026.02.12.6"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -14,6 +14,13 @@ typeset -g THEME_SELF_FILE="${(%):-%x}"
 # - set: show this value instead of hostname
 # ---------------------------
 typeset -g display_name=""
+
+# ---------------------------
+# Toggle switches (runtime)
+# ---------------------------
+typeset -g CHIZURU_SHOW_IP="${CHIZURU_SHOW_IP:-1}"
+typeset -g CHIZURU_SHOW_HOSTNAME="${CHIZURU_SHOW_HOSTNAME:-1}"
+typeset -g CHIZURU_SHOW_CONTAINER="${CHIZURU_SHOW_CONTAINER:-1}"
 
 force_color_prompt=yes
 
@@ -193,6 +200,7 @@ __detect_container_line() {
   # 2) WSL (not in container) => [WSL1]/[WSL2]
   # 3) else => empty
 
+  local detected=""
   local is_container=0
   local virt=""
 
@@ -215,36 +223,41 @@ __detect_container_line() {
   fi
 
   if (( is_container )); then
-    container_line="%F{#75C8FF}[Container]%f"$'\n'
-    return
-  fi
+    detected="%F{#75C8FF}[Container]%f"$'\n'
+  else
+    local is_wsl=0
+    local wsl_ver=""
+    local osrel=""
 
-  local is_wsl=0
-  local wsl_ver=""
-  local osrel=""
+    if [[ -n "$WSL_INTEROP" || -n "$WSL_DISTRO_NAME" || -n "$WSLENV" ]]; then
+      is_wsl=1
+    fi
 
-  if [[ -n "$WSL_INTEROP" || -n "$WSL_DISTRO_NAME" || -n "$WSLENV" ]]; then
-    is_wsl=1
-  fi
+    osrel="$(cat /proc/sys/kernel/osrelease 2>/dev/null)"
+    [[ -z "$osrel" ]] && osrel="$(uname -r 2>/dev/null)"
 
-  osrel="$(cat /proc/sys/kernel/osrelease 2>/dev/null)"
-  [[ -z "$osrel" ]] && osrel="$(uname -r 2>/dev/null)"
-
-  if (( ! is_wsl )); then
-    echo "$osrel" | grep -qi microsoft && is_wsl=1
     if (( ! is_wsl )); then
-      grep -qi microsoft /proc/version 2>/dev/null && is_wsl=1
+      echo "$osrel" | grep -qi microsoft && is_wsl=1
+      if (( ! is_wsl )); then
+        grep -qi microsoft /proc/version 2>/dev/null && is_wsl=1
+      fi
+    fi
+
+    if (( is_wsl )); then
+      # WSL2: WSL_INTEROP present OR osrelease matches common WSL2 patterns
+      if [[ -n "$WSL_INTEROP" ]] || echo "$osrel" | grep -qiE '(wsl2|microsoft-standard)'; then
+        wsl_ver="Windows Subsystem Linux Ver.2"
+      else
+        wsl_ver="Windows Subsystem Linux Ver.1"
+      fi
+      detected="%F{#75C8FF}[${wsl_ver}]%f"$'\n'
+    else
+      detected=""
     fi
   fi
 
-  if (( is_wsl )); then
-    # WSL2: WSL_INTEROP present OR osrelease matches common WSL2 patterns
-    if [[ -n "$WSL_INTEROP" ]] || echo "$osrel" | grep -qiE '(wsl2|microsoft-standard)'; then
-      wsl_ver="Windows Subsystem Linux Ver.2"
-    else
-      wsl_ver="Windows Subsystem Linux Ver.1"
-    fi
-    container_line="%F{#75C8FF}[${wsl_ver}]%f"$'\n'
+  if [[ "${CHIZURU_SHOW_CONTAINER:-1}" == "1" ]]; then
+    container_line="$detected"
   else
     container_line=""
   fi
@@ -252,6 +265,8 @@ __detect_container_line() {
 __detect_container_line
 
 __refresh_prompt_vars() {
+  __detect_container_line
+
   local now_ip="$(__prompt_ipv4_up)"
   local now_host="$(__prompt_host_tag)"
   local now_env="$(__prompt_env_tag)"
@@ -282,23 +297,17 @@ __env_tag_last="$env_tag"
 __time_str_last="$time_str"
 __hnode_count_last=$hnode_count
 
-# For "real-time" time display we redraw periodically while waiting for input.
-# Note: this is interactive-only behavior.
+# --- REALTIME CLOCK (idle refresh) ---
+# Important: enable TMOUT option in zsh, otherwise TMOUT won't generate ALRM.
 TMOUT=1
 TRAPALRM() {
   __refresh_prompt_vars
-  if [[ "$ip_addr" != "$__ip_addr_last" \
-     || "$host_tag" != "$__host_tag_last" \
-     || "$env_tag" != "$__env_tag_last" \
-     || "$time_str" != "$__time_str_last" \
-     || "$hnode_count" -ne "$__hnode_count_last" ]]; then
-    __ip_addr_last="$ip_addr"
-    __host_tag_last="$host_tag"
-    __env_tag_last="$env_tag"
-    __time_str_last="$time_str"
-    __hnode_count_last=$hnode_count
-    zle && zle reset-prompt
-  fi
+  __ip_addr_last="$ip_addr"
+  __host_tag_last="$host_tag"
+  __env_tag_last="$env_tag"
+  __time_str_last="$time_str"
+  __hnode_count_last=$hnode_count
+  zle && zle reset-prompt
 }
 
 configure_prompt() {
@@ -314,7 +323,27 @@ configure_prompt() {
     green_c="%F{green}"
     cp_fn
 
-    PROMPT=$'${container_line}${green_c}${env_prefix}[${host_tag}][hnode: ${hnode_count}]${yellow_c}[${time_str}]\n[IP: ${ip_addr}]\n${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
+    # IMPORTANT:
+    # These parts MUST keep ${var} as literal for prompt-time expansion.
+    # Use single quotes for the pieces that contain ${...}.
+    local host_part=""
+    if [[ "${CHIZURU_SHOW_HOSTNAME:-1}" == "1" ]]; then
+      host_part='[${host_tag}]'
+    else
+      host_part=''
+    fi
+
+    local hnode_part='%F{#FF8A3D}[hnode: ${hnode_count}]%f'
+    local time_part='%F{#C205E9}[${time_str}]%f'
+
+    local ip_line=''
+    if [[ "${CHIZURU_SHOW_IP:-1}" == "1" ]]; then
+      ip_line='${yellow_c}[IP: ${ip_addr}]%f'$'\n'
+    else
+      ip_line=''
+    fi
+
+    PROMPT=$'${container_line}${green_c}${env_prefix}'"${host_part}${hnode_part}"$'${yellow_c}'"${time_part}"$'\n'"${ip_line}"$'${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
 }
 
 NEWLINE_BEFORE_PROMPT=yes
@@ -503,6 +532,14 @@ __theme_check_update_on_login() {
 
 # Manual update command
 chizuru-update() { theme-update "$@"; }
+
+# Toggle commands (apply immediately)
+chizuru-show-ip() { CHIZURU_SHOW_IP=1; configure_prompt; zle && zle reset-prompt }
+chizuru-disable-ip() { CHIZURU_SHOW_IP=0; configure_prompt; zle && zle reset-prompt }
+chizuru-show-hostname() { CHIZURU_SHOW_HOSTNAME=1; configure_prompt; zle && zle reset-prompt }
+chizuru-disable-hostname() { CHIZURU_SHOW_HOSTNAME=0; configure_prompt; zle && zle reset-prompt }
+chizuru-show-container() { CHIZURU_SHOW_CONTAINER=1; __detect_container_line; configure_prompt; zle && zle reset-prompt }
+chizuru-disable-container() { CHIZURU_SHOW_CONTAINER=0; __detect_container_line; configure_prompt; zle && zle reset-prompt }
 # ---------------------------
 
 if [ "$color_prompt" = yes ]; then
