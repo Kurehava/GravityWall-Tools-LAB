@@ -1,6 +1,5 @@
 function docker_view(){
     docker_containers=($(sudo docker ps -a | awk 'NR>=2 {print $1}'))
-    # echo -e "container_id\t status\t name\t command\t image"
     containers_id=("Container_ID" "============")
     containers_status=("Status" "======")
     containers_name=("Container_Name" "==============")
