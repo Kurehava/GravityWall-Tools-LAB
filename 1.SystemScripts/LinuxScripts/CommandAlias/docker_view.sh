@@ -11,19 +11,14 @@ function docker_view(){
         container_network=`sudo docker inspect $container_ | jq -r '.[0].NetworkSettings.Networks | keys[]'`
         container_ip=`sudo docker inspect -f "{{ .NetworkSettings.Networks.$container_network.IPAddress }}" $container_`
         if [ "$container_ip" = "" ];then
-            container_ip=" " #xxx.xx.xx.x
+            container_ip=" "
         else
             container_ip="$container_ip"
         fi
-        # container_name=`docker inspect -f "{{ .Name }}" $container_ | tr -d "/"`
-        # container_id=`docker inspect -f "{{ .Config.Hostname }}" $container_`
         container_status=`sudo docker inspect -f "{{ .State.Status }}" $container_`
         if [ "$container_status" = "exited" ];then
             container_status="exited_"
         fi
-        # container_cmd=`docker inspect -f "{{ .Config.Cmd }}" $container_`
-        # container_image=`docker inspect -f "{{ .Config.Image }}" $container_`
-        # echo -e "$container_id\t $container_status\t $container_name\t $container_cmd\t $container_image\t"
         containers_id+=(`sudo docker inspect -f "{{ .Config.Hostname }}" $container_`)
         containers_status+=($container_status)
         containers_name+=(`sudo docker inspect -f "{{ .Name }}" $container_ | tr -d "/"`)
@@ -39,8 +34,8 @@ function docker_view(){
 
     for ((i=0; i<=${#containers_id[@]}; i++));do
         echo -e "${containers_id[i]}$(printf ' %.0s' $(seq 0 $(($cid-${#containers_id[i]}))))\
-${containers_status[i]}$(printf ' %.0s' $(seq 0 $(($cst-${#containers_status[i]}))))\
-${containers_ip[i]}$(printf ' %.0s' $(seq 0 $(($cip-${#containers_ip[i]}))))\
-${containers_name[i]} "
+        ${containers_status[i]}$(printf ' %.0s' $(seq 0 $(($cst-${#containers_status[i]}))))\
+        ${containers_ip[i]}$(printf ' %.0s' $(seq 0 $(($cip-${#containers_ip[i]}))))\
+        ${containers_name[i]} "
     done
 }
