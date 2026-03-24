@@ -34,8 +34,8 @@ function docker_view(){
 
     for ((i=0; i<=${#containers_id[@]}; i++));do
         echo -e "${containers_id[i]}$(printf ' %.0s' $(seq 0 $(($cid-${#containers_id[i]}))))\
-        ${containers_status[i]}$(printf ' %.0s' $(seq 0 $(($cst-${#containers_status[i]}))))\
-        ${containers_ip[i]}$(printf ' %.0s' $(seq 0 $(($cip-${#containers_ip[i]}))))\
-        ${containers_name[i]} "
+${containers_status[i]}$(printf ' %.0s' $(seq 0 $(($cst-${#containers_status[i]}))))\
+${containers_ip[i]}$(printf ' %.0s' $(seq 0 $(($cip-${#containers_ip[i]}))))\
+${containers_name[i]} "
     done
 }
