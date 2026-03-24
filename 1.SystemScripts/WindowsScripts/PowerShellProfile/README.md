@@ -9,7 +9,7 @@ Second, cert your script
 > * When you script changed, you must cert your script again.
 
 ```
-first, Download file and rename to "$HOME\Documents\PowerShell\Microsoft.Powershell_profile.ps1".
+first, Download "newProfile.ps1" and rename to "$HOME\Documents\PowerShell\Microsoft.Powershell_profile.ps1".
 
 # PLZ run command on administrator.
 # PLZ run command on administrator.
