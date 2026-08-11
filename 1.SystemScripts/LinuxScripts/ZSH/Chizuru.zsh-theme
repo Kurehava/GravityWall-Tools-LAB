@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.08.11.1"
+THEME_VERSION="2026.08.11.2"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -324,77 +324,70 @@ __env_tag_last="$env_tag"
 __time_str_last="$time_str"
 __hnode_count_last=$hnode_count
 
-# --- REALTIME IP + CLOCK (history-safe ZLE refresh) ---
+# --- REALTIME IP + CLOCK (scheduler-driven, no ZLE widget / no SIGALRM) ---
 #
-# Goals:
-#   - IPv4 addresses and clock remain realtime (1-second refresh).
-#   - Normal command-line typing may continue while the prompt refreshes.
-#   - History browsing/search/completion input always has priority.
-#   - Container/WSL, hostname, environment tag and hnode are never refreshed
-#     by the timer.
+# Design goals:
+#   - IPv4 addresses and clock refresh every second.
+#   - History navigation, completion and normal editing remain entirely owned
+#     by ZLE.  The realtime updater never calls a ZLE widget.
+#   - Container/WSL, hostname, environment tag and hnode stay event-driven.
 #
-typeset -g __chizuru_realtime_busy=0
+# Why zsh/sched:
+#   `sched -o` is designed by zsh to execute scheduled work while the line
+#   editor is waiting for input.  With -o, zsh itself clears/redraws the
+#   command line around the scheduled event.  This avoids injecting
+#   `reset-prompt` from a SIGALRM trap.
+#
+# TMOUT/TRAPALRM was used by older Chizuru versions.  Disable that timer so a
+# shell reloaded with `source ~/.zshrc` cannot keep the old alarm path active.
+TMOUT=0
+unfunction TRAPALRM 2>/dev/null
 
-__chizuru_realtime_refresh_widget() {
-  # Only handle the normal PS1 editor.  Do not interfere with PS2, select,
-  # vared, etc.
-  [[ "$CONTEXT" == "start" ]] || return 0
+typeset -gi __chizuru_sched_generation=$(( ${__chizuru_sched_generation:-0} + 1 ))
 
-  # Input that has already reached the terminal/ZLE queue must always win.
-  # This is especially important for multi-byte cursor-key escape sequences.
-  (( PENDING > 0 || KEYS_QUEUED_COUNT > 0 )) && return 0
+__chizuru_schedule_realtime_refresh() {
+  local generation="$1"
 
-  # HISTNO is the history line currently retrieved inside ZLE.
-  # HISTCMD is the new/current shell history line.
-  # If they differ, the user is browsing an older history entry: never redraw.
-  (( HISTNO != HISTCMD )) && return 0
+  [[ -o interactive ]] || return 0
+  (( generation == __chizuru_sched_generation )) || return 0
 
-  # Avoid redraws in ZLE modes where another interactive UI owns the line.
-  case "$KEYMAP" in
-    isearch|menuselect|command|.safe)
-      return 0
-      ;;
-  esac
-  (( ISEARCHMATCH_ACTIVE )) && return 0
+  # Schedule a single next tick.  The generation token makes stale events from
+  # an older `source ~/.zshrc` harmless and prevents them from creating another
+  # recurring chain.
+  sched -o +1 "__chizuru_realtime_scheduled_refresh ${generation}"
+}
 
-  # Prevent accidental re-entry if a refresh takes unusually long.
-  (( __chizuru_realtime_busy )) && return 0
-  __chizuru_realtime_busy=1
+__chizuru_realtime_scheduled_refresh() {
+  local generation="$1"
+
+  [[ -o interactive ]] || return 0
+  (( generation == __chizuru_sched_generation )) || return 0
 
   # Realtime path: ONLY IP + time.
   __refresh_prompt_dynamic_vars
   __ip_addr_last="$ip_addr"
   __time_str_last="$time_str"
 
-  # Keys may have arrived while `ip`/`date` were running.
-  # Re-check immediately before touching the display.
-  if (( PENDING > 0 || KEYS_QUEUED_COUNT > 0 )); then
-    __chizuru_realtime_busy=0
+  # `sched -o` redraws the command line after this function returns.
+  # No zle widget is called here, so history/completion widget state is not
+  # replaced by the realtime refresh path.
+  __chizuru_schedule_realtime_refresh "$generation"
+}
+
+__chizuru_start_realtime_scheduler() {
+  [[ -o interactive ]] || return 0
+
+  # Load only the scheduler builtin we need.
+  if ! zmodload -F zsh/sched b:sched 2>/dev/null; then
+    # Fallback: prompt still refreshes normally at precmd; realtime animation
+    # is simply unavailable if this zsh build lacks zsh/sched.
     return 0
   fi
 
-  zle reset-prompt
-  __chizuru_realtime_busy=0
+  __chizuru_schedule_realtime_refresh "$__chizuru_sched_generation"
 }
 
-# Register as a real ZLE widget so BUFFER/PENDING are accessed in ZLE context.
-if [[ -o interactive ]]; then
-  zle -N __chizuru_realtime_refresh_widget
-fi
-
-# Important: non-zero TMOUT makes zsh generate SIGALRM while waiting at
-# an interactive prompt. The trap itself stays lightweight and delegates
-# editing-state checks to the ZLE widget above.
-TMOUT=1
-TRAPALRM() {
-  [[ -o interactive ]] || return 0
-
-  # zle is callable only while the line editor is active.
-  # If ZLE is not active, the next precmd will refresh everything anyway.
-  if zle >/dev/null 2>&1; then
-    zle __chizuru_realtime_refresh_widget
-  fi
-}
+__chizuru_start_realtime_scheduler
 
 configure_prompt() {
     if [ "`whoami`" = "root" ];then
