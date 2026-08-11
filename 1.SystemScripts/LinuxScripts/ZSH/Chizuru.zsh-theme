@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.02.12.6"
+THEME_VERSION="2026.08.11.1"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -262,17 +262,32 @@ __detect_container_line() {
     container_line=""
   fi
 }
-__detect_container_line
 
-__refresh_prompt_vars() {
+# ---------------------------
+# Prompt variable refresh model
+#
+# Static / event-driven:
+#   - container / WSL tag
+#   - hostname / display_name
+#   - venv / conda tag
+#   - hnode count
+#
+# Dynamic / realtime:
+#   - IPv4 addresses
+#   - clock
+#
+# The realtime path intentionally NEVER refreshes the static values.
+# ---------------------------
+
+__refresh_prompt_static_vars() {
   __detect_container_line
 
-  local now_ip="$(__prompt_ipv4_up)"
   local now_host="$(__prompt_host_tag)"
   local now_env="$(__prompt_env_tag)"
 
   host_tag="$now_host"
   env_tag="$now_env"
+
   if [[ -n "$env_tag" ]]; then
     # reddish-orange for venv/conda tag (including brackets)
     # IMPORTANT: restore green after env tag so host/hnode stays green
@@ -281,13 +296,25 @@ __refresh_prompt_vars() {
     env_prefix=""
   fi
 
+  hnode_count=${#__cd_history[@]}
+}
+
+__refresh_prompt_dynamic_vars() {
+  local now_ip="$(__prompt_ipv4_up)"
+
   if [[ -z "$now_ip" ]]; then
     now_ip="$(ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1)"
   fi
-  ip_addr="$now_ip"
 
+  ip_addr="$now_ip"
   time_str="$(date +%H:%M:%S 2>/dev/null)"
-  hnode_count=${#__cd_history[@]}
+}
+
+# Full refresh is used at normal prompt lifecycle boundaries.
+# This is safe because precmd runs before ZLE starts editing the next command line.
+__refresh_prompt_vars() {
+  __refresh_prompt_static_vars
+  __refresh_prompt_dynamic_vars
 }
 
 __refresh_prompt_vars
@@ -297,17 +324,76 @@ __env_tag_last="$env_tag"
 __time_str_last="$time_str"
 __hnode_count_last=$hnode_count
 
-# --- REALTIME CLOCK (idle refresh) ---
-# Important: enable TMOUT option in zsh, otherwise TMOUT won't generate ALRM.
+# --- REALTIME IP + CLOCK (history-safe ZLE refresh) ---
+#
+# Goals:
+#   - IPv4 addresses and clock remain realtime (1-second refresh).
+#   - Normal command-line typing may continue while the prompt refreshes.
+#   - History browsing/search/completion input always has priority.
+#   - Container/WSL, hostname, environment tag and hnode are never refreshed
+#     by the timer.
+#
+typeset -g __chizuru_realtime_busy=0
+
+__chizuru_realtime_refresh_widget() {
+  # Only handle the normal PS1 editor.  Do not interfere with PS2, select,
+  # vared, etc.
+  [[ "$CONTEXT" == "start" ]] || return 0
+
+  # Input that has already reached the terminal/ZLE queue must always win.
+  # This is especially important for multi-byte cursor-key escape sequences.
+  (( PENDING > 0 || KEYS_QUEUED_COUNT > 0 )) && return 0
+
+  # HISTNO is the history line currently retrieved inside ZLE.
+  # HISTCMD is the new/current shell history line.
+  # If they differ, the user is browsing an older history entry: never redraw.
+  (( HISTNO != HISTCMD )) && return 0
+
+  # Avoid redraws in ZLE modes where another interactive UI owns the line.
+  case "$KEYMAP" in
+    isearch|menuselect|command|.safe)
+      return 0
+      ;;
+  esac
+  (( ISEARCHMATCH_ACTIVE )) && return 0
+
+  # Prevent accidental re-entry if a refresh takes unusually long.
+  (( __chizuru_realtime_busy )) && return 0
+  __chizuru_realtime_busy=1
+
+  # Realtime path: ONLY IP + time.
+  __refresh_prompt_dynamic_vars
+  __ip_addr_last="$ip_addr"
+  __time_str_last="$time_str"
+
+  # Keys may have arrived while `ip`/`date` were running.
+  # Re-check immediately before touching the display.
+  if (( PENDING > 0 || KEYS_QUEUED_COUNT > 0 )); then
+    __chizuru_realtime_busy=0
+    return 0
+  fi
+
+  zle reset-prompt
+  __chizuru_realtime_busy=0
+}
+
+# Register as a real ZLE widget so BUFFER/PENDING are accessed in ZLE context.
+if [[ -o interactive ]]; then
+  zle -N __chizuru_realtime_refresh_widget
+fi
+
+# Important: non-zero TMOUT makes zsh generate SIGALRM while waiting at
+# an interactive prompt. The trap itself stays lightweight and delegates
+# editing-state checks to the ZLE widget above.
 TMOUT=1
 TRAPALRM() {
-  __refresh_prompt_vars
-  __ip_addr_last="$ip_addr"
-  __host_tag_last="$host_tag"
-  __env_tag_last="$env_tag"
-  __time_str_last="$time_str"
-  __hnode_count_last=$hnode_count
-  zle && zle reset-prompt
+  [[ -o interactive ]] || return 0
+
+  # zle is callable only while the line editor is active.
+  # If ZLE is not active, the next precmd will refresh everything anyway.
+  if zle >/dev/null 2>&1; then
+    zle __chizuru_realtime_refresh_widget
+  fi
 }
 
 configure_prompt() {
