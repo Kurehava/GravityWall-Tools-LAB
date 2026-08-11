@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.08.11.2"
+THEME_VERSION="2026.08.11.3"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -324,70 +324,142 @@ __env_tag_last="$env_tag"
 __time_str_last="$time_str"
 __hnode_count_last=$hnode_count
 
-# --- REALTIME IP + CLOCK (scheduler-driven, no ZLE widget / no SIGALRM) ---
+# --- REALTIME IP + CLOCK (ZLE fd-event driven) ---
 #
-# Design goals:
-#   - IPv4 addresses and clock refresh every second.
-#   - History navigation, completion and normal editing remain entirely owned
-#     by ZLE.  The realtime updater never calls a ZLE widget.
-#   - Container/WSL, hostname, environment tag and hnode stay event-driven.
+# Realtime values:
+#   - IPv4 addresses
+#   - clock
 #
-# Why zsh/sched:
-#   `sched -o` is designed by zsh to execute scheduled work while the line
-#   editor is waiting for input.  With -o, zsh itself clears/redraws the
-#   command line around the scheduled event.  This avoids injecting
-#   `reset-prompt` from a SIGALRM trap.
+# Event-driven/static values:
+#   - container / WSL tag
+#   - hostname / display_name
+#   - venv / conda tag
+#   - hnode count
 #
-# TMOUT/TRAPALRM was used by older Chizuru versions.  Disable that timer so a
-# shell reloaded with `source ~/.zshrc` cannot keep the old alarm path active.
+# Architecture:
+#   A tiny background zpty ticker writes one line per second.
+#   ZLE monitors the ticker's file descriptor with `zle -F`.
+#   The fd handler runs from ZLE's own input-wait loop, refreshes ONLY
+#   IP/time, then calls `reset-prompt`.
+#
+# This deliberately avoids BOTH older realtime mechanisms:
+#   1) TMOUT -> SIGALRM -> TRAPALRM -> reset-prompt
+#   2) zsh/sched -o -> clear/redraw the whole multi-line prompt every second
+#
+
+typeset -g  __chizuru_timer_name="chizuru_realtime_timer"
+typeset -gi __chizuru_timer_fd=-1
+
+# ---- compatibility cleanup for older Chizuru realtime engines ----
+
+# v2026.08.11.1 and older: SIGALRM based engine
 TMOUT=0
 unfunction TRAPALRM 2>/dev/null
 
-typeset -gi __chizuru_sched_generation=$(( ${__chizuru_sched_generation:-0} + 1 ))
+# v2026.08.11.1: remove the old user-defined realtime widget if it exists
+zle -D __chizuru_realtime_refresh_widget 2>/dev/null
 
-__chizuru_schedule_realtime_refresh() {
-  local generation="$1"
+# v2026.08.11.2: remove any already queued sched events.
+# Loading zsh/sched only for cleanup is harmless; no new sched events are used.
+__chizuru_cleanup_old_sched_events() {
+  zmodload -F zsh/sched b:sched 2>/dev/null || return 0
 
-  [[ -o interactive ]] || return 0
-  (( generation == __chizuru_sched_generation )) || return 0
+  local i
+  for (( i=${#zsh_scheduled_events}; i>=1; i-- )); do
+    if [[ "${zsh_scheduled_events[i]}" == *"__chizuru_"* ]]; then
+      sched -$i 2>/dev/null
+    fi
+  done
+}
+__chizuru_cleanup_old_sched_events
 
-  # Schedule a single next tick.  The generation token makes stale events from
-  # an older `source ~/.zshrc` harmless and prevents them from creating another
-  # recurring chain.
-  sched -o +1 "__chizuru_realtime_scheduled_refresh ${generation}"
+
+# ---- current fd-driven realtime engine ----
+
+__chizuru_stop_realtime_timer() {
+  # Remove the ZLE fd handler first so ZLE can no longer dispatch it.
+  if (( __chizuru_timer_fd >= 0 )); then
+    zle -F "$__chizuru_timer_fd" 2>/dev/null
+  fi
+
+  # zpty -d sends HUP to the ticker process and releases the pty.
+  if zmodload -F zsh/zpty b:zpty 2>/dev/null; then
+    zpty -d "$__chizuru_timer_name" 2>/dev/null
+  fi
+
+  __chizuru_timer_fd=-1
 }
 
-__chizuru_realtime_scheduled_refresh() {
-  local generation="$1"
+__chizuru_realtime_fd_handler() {
+  local fd="$1"
+  local err="${2:-}"
+  local tick=""
+  local got_tick=0
 
-  [[ -o interactive ]] || return 0
-  (( generation == __chizuru_sched_generation )) || return 0
+  # poll/select reported an invalid/closed descriptor.
+  if [[ -n "$err" ]]; then
+    zle -F "$fd" 2>/dev/null
+    __chizuru_timer_fd=-1
+    return 0
+  fi
+
+  # Drain all currently queued timer lines.  This is important after a long
+  # foreground command: we want ONE prompt refresh, not a burst of old ticks.
+  #
+  # `zpty -r -t` is non-blocking here.  With a parameter argument it consumes
+  # at most one available line per iteration.
+  while zpty -r -t "$__chizuru_timer_name" tick 2>/dev/null; do
+    got_tick=1
+  done
+
+  (( got_tick )) || return 0
 
   # Realtime path: ONLY IP + time.
   __refresh_prompt_dynamic_vars
   __ip_addr_last="$ip_addr"
   __time_str_last="$time_str"
 
-  # `sched -o` redraws the command line after this function returns.
-  # No zle widget is called here, so history/completion widget state is not
-  # replaced by the realtime refresh path.
-  __chizuru_schedule_realtime_refresh "$generation"
+  # We are already being called from ZLE's fd event loop, not from a signal
+  # trap and not from a user key widget.
+  #
+  # reset-prompt re-expands PS1 and redisplays BUFFER.  `nolast` is supplied
+  # defensively even though reset-prompt itself is documented not to alter
+  # LASTWIDGET.
+  zle reset-prompt -f nolast
 }
 
-__chizuru_start_realtime_scheduler() {
+__chizuru_start_realtime_timer() {
   [[ -o interactive ]] || return 0
 
-  # Load only the scheduler builtin we need.
-  if ! zmodload -F zsh/sched b:sched 2>/dev/null; then
-    # Fallback: prompt still refreshes normally at precmd; realtime animation
-    # is simply unavailable if this zsh build lacks zsh/sched.
+  # zpty provides a dedicated pty + readable fd without consuming zsh's single
+  # coprocess channel.  Its master fd can be monitored directly by `zle -F`.
+  if ! zmodload -F zsh/zpty b:zpty 2>/dev/null; then
     return 0
   fi
 
-  __chizuru_schedule_realtime_refresh "$__chizuru_sched_generation"
+  # If ~/.zshrc/theme is sourced again, kill the previous ticker first.
+  __chizuru_stop_realtime_timer
+
+  # -b makes the pty non-blocking.
+  #
+  # No terminal output from this ticker reaches the user's screen: its stdout
+  # goes only to the private pty read by the ZLE fd handler.
+  if ! zpty -b "$__chizuru_timer_name" \
+      'while :; do command sleep 1 || exit 0; print -r -- tick; done'
+  then
+    return 0
+  fi
+
+  __chizuru_timer_fd=$REPLY
+
+  # IMPORTANT:
+  # This is a NORMAL fd handler, not `zle -F -w`.
+  # Therefore the timer callback is not itself a ZLE widget and does not
+  # replace the user's history-navigation widget state.
+  zle -F "$__chizuru_timer_fd" __chizuru_realtime_fd_handler
 }
 
-__chizuru_start_realtime_scheduler
+__chizuru_start_realtime_timer
 
 configure_prompt() {
     if [ "`whoami`" = "root" ];then
