@@ -3,7 +3,7 @@
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.08.25.2"
+THEME_VERSION="2026.08.25.3"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -350,6 +350,29 @@ __hnode_count_last=$hnode_count
 typeset -g  __chizuru_timer_name="chizuru_realtime_timer"
 typeset -gi __chizuru_timer_fd=-1
 
+# zle <widget> -f nolast is available starting with zsh 5.9.
+# Older zsh versions need a conservative redraw policy because their
+# reset-prompt changes LASTWIDGET and can break repeated history widgets.
+typeset -gi __chizuru_zle_nolast_supported=0
+
+__chizuru_detect_zle_nolast_support() {
+  local ver="${ZSH_VERSION%%-*}"
+  local -a parts
+  local major=0 minor=0
+
+  parts=("${(@s:.:)ver}")
+  major="${parts[1]:-0}"
+  minor="${parts[2]:-0}"
+
+  if (( major > 5 || (major == 5 && minor >= 9) )); then
+    __chizuru_zle_nolast_supported=1
+  else
+    __chizuru_zle_nolast_supported=0
+  fi
+}
+
+__chizuru_detect_zle_nolast_support
+
 # ---- compatibility cleanup for older Chizuru realtime engines ----
 
 # v2026.08.11.1 and older: SIGALRM based engine
@@ -422,10 +445,25 @@ __chizuru_realtime_fd_handler() {
   # We are already being called from ZLE's fd event loop, not from a signal
   # trap and not from a user key widget.
   #
-  # reset-prompt re-expands PS1 and redisplays BUFFER.  `nolast` is supplied
-  # defensively even though reset-prompt itself is documented not to alter
-  # LASTWIDGET.
-  zle reset-prompt -f nolast
+  # zsh >= 5.9:
+  #   Use `-f nolast`.  This is the correct full-realtime path because it
+  #   prevents reset-prompt from replacing LASTWIDGET, so repeated history,
+  #   kill/yank and other stateful widgets keep their continuity.
+  #
+  # zsh <= 5.8.x:
+  #   `-f nolast` does not exist, and reset-prompt itself changes LASTWIDGET.
+  #   There is no writable LASTWIDGET fallback (LASTWIDGET is read-only).
+  #   Therefore redraw ONLY when the current edit buffer is empty/current.
+  #   IP/time variables are still sampled every second, but the visible prompt
+  #   intentionally freezes while the user is typing or browsing history.
+  #   The next safe idle tick or normal precmd shows the newest values.
+  if (( __chizuru_zle_nolast_supported )); then
+    zle reset-prompt -f nolast
+  else
+    if [[ -z "${BUFFER:-}" ]] && (( ${HISTNO:-0} == ${HISTCMD:-0} )); then
+      zle reset-prompt
+    fi
+  fi
 }
 
 __chizuru_start_realtime_timer() {
