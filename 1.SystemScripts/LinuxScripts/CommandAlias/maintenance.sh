@@ -6,3 +6,6 @@ alias maintenance="sudo yum makecache && sudo yum -y update && sudo yum -y autor
 
 # ubuntu & debian
 alias maintenance='sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confold" upgrade && sudo DEBIAN_FRONTEND=noninteractive apt-get -y autoremove'
+
+# ubuntu & debian full-upgrade
+alias maintenance_full='sudo apt-get update && sudo DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confold" full-upgrade && sudo DEBIAN_FRONTEND=noninteractive apt-get -y autoremove'
