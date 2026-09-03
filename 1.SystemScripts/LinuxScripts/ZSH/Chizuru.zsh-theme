@@ -7,7 +7,7 @@ if [[ "$(tty)" == "/dev/ttyS0" && "$TERM" == "vt220" ]]; then
 fi
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.08.25.3"
+THEME_VERSION="2026.09.04.1"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
