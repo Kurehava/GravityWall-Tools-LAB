@@ -2,6 +2,10 @@
 # Based Kali ZSH Theme.
 # Minimal twoline prompt (with dynamic IP/host + container tag)
 
+if [[ "$(tty)" == "/dev/ttyS0" && "$TERM" == "vt220" ]]; then
+    export TERM=xterm-256color
+fi
+
 THEME_NAME="Chizuru"
 THEME_VERSION="2026.08.25.3"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
