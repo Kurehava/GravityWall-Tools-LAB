@@ -78,11 +78,12 @@ function historys(){
   }
 }
 
-Set-Alias ls newls
-Set-Alias -Name cd -Value newcd -Option AllScope
 function bn(){
   back
 }
 function bl(){
   back -l
 }
+
+Set-Alias -Name ls -Value newls -Option AllScope
+Set-Alias -Name cd -Value newcd -Option AllScope
