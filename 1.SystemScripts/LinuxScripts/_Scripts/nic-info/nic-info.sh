@@ -19,7 +19,7 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export PATH
 
 MODE="physical"
-IP_MODE="dual"
+IP_MODE="normal"
 CUSTOM_FIELDS=0
 FIELDS=""
 UP_ONLY=0
@@ -193,7 +193,7 @@ get_ipv6() {
 field_width() {
     case "$1" in
         nic)
-            printf '%s' '20'
+            printf '%s' '8'
             ;;
         state)
             printf '%s' '8'
@@ -202,10 +202,10 @@ field_width() {
             printf '%s' '18'
             ;;
         alias)
-            printf '%s' '26'
+            printf '%s' '20'
             ;;
         ipv4)
-            printf '%s' '24'
+            printf '%s' '20'
             ;;
         ipv6)
             printf '%s' '48'
@@ -438,7 +438,9 @@ if [ "$CUSTOM_FIELDS" -eq 0 ]; then
         dual)
             FIELDS="nic,state,mac,alias,ipv4,ipv6"
             ;;
-
+        normal)
+            FIELDS="nic,mac,alias,ipv4"
+            ;;
     esac
 
 fi
