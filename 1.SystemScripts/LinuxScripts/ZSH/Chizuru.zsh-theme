@@ -7,10 +7,14 @@ if [[ "$(tty)" == "/dev/ttyS0" && "$TERM" == "vt220" ]]; then
 fi
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.09.04.1"
+THEME_VERSION="2026.09.10.1"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
+
+unset CHIZURU_SHOW_IP CHIZURU_SHOW_IPV6 CHIZURU_SHOW_IPV6_LINKLOCAL \
+      CHIZURU_SHOW_VIRTUAL_NIC CHIZURU_NIC_FALLBACK_ANY \
+      CHIZURU_SHOW_HOSTNAME CHIZURU_SHOW_CONTAINER
 
 # ---------------------------
 # User-configurable display name (highest priority)
@@ -21,8 +25,36 @@ typeset -g display_name=""
 
 # ---------------------------
 # Toggle switches (runtime)
+#
+# All switches honour a pre-set environment value, so they can be configured
+# in ~/.zshrc BEFORE this theme is sourced, e.g.
+#     CHIZURU_SHOW_IPV6=1
+#     CHIZURU_SHOW_VIRTUAL_NIC=1
 # ---------------------------
 typeset -g CHIZURU_SHOW_IP="${CHIZURU_SHOW_IP:-1}"
+
+# IP family to display
+#   0 : IPv4 only            -> [IP: 192.168.0.10/24]
+#   1 : IPv4 + IPv6          -> [IPv4: ...] / [IPv6: ...]  (two lines)
+typeset -g CHIZURU_SHOW_IPV6="${CHIZURU_SHOW_IPV6:-0}"
+
+# Include fe80::/10 link-local addresses (only meaningful when IPv6 is on)
+#   0 : hide link-local (recommended, they exist on every NIC)
+#   1 : show link-local too
+typeset -g CHIZURU_SHOW_IPV6_LINKLOCAL="${CHIZURU_SHOW_IPV6_LINKLOCAL:-0}"
+
+# NIC scope
+#   0 : physical NIC only    (eth0 / ens160 / wlan0 ... )
+#   1 : physical + virtual   (docker0 / br-* / veth* / tun* / wg* / bond* ...)
+typeset -g CHIZURU_SHOW_VIRTUAL_NIC="${CHIZURU_SHOW_VIRTUAL_NIC:-0}"
+
+# Safety net for "physical only" mode.
+# Inside a container / WSL / bond-only host there may be NO physical NIC at all,
+# which would leave the prompt showing an empty address.
+#   1 : if physical-only finds nothing, retry once including virtual NICs
+#   0 : show nothing in that case
+typeset -g CHIZURU_NIC_FALLBACK_ANY="${CHIZURU_NIC_FALLBACK_ANY:-1}"
+
 typeset -g CHIZURU_SHOW_HOSTNAME="${CHIZURU_SHOW_HOSTNAME:-1}"
 typeset -g CHIZURU_SHOW_CONTAINER="${CHIZURU_SHOW_CONTAINER:-1}"
 
@@ -42,22 +74,85 @@ cp_fn() {
 
 setopt prompt_subst
 
-__prompt_ipv4_up() {
-  ip -br -4 addr 2>/dev/null \
-  | awk '
-      $2=="UP"{
-        for(i=3;i<=NF;i++){
-          # only accept IPv4/mask like 1.2.3.4/24 (ignore metric, etc.)
-          if($i ~ /^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+\/[0-9]+$/){
-            a[++n]=$i
-          }
-        }
-      }
-      END{
-        for(i=1;i<=n;i++){
-          printf "%s%s", a[i], (i<n?", ":"")
-        }
-      }'
+# ---------------------------
+# NIC classification
+#
+# /sys/class/net/<if> is a symlink:
+#   physical : ../../devices/pci0000:00/.../net/ens160
+#   virtual  : ../../devices/virtual/net/docker0
+#
+# ${p:A} resolves the symlink with zsh's own modifier, so this costs no fork
+# even though it runs once per second per interface.
+# ---------------------------
+__prompt_nic_is_physical() {
+  # $1: interface name (may carry an "@ifN" suffix, e.g. eth0@if12)
+  local ifc="${1%%@*}"
+  [[ -z "$ifc" || "$ifc" == "lo" ]] && return 1
+
+  local p="/sys/class/net/$ifc"
+  [[ -e "$p" ]] || return 1
+
+  # pure software NIC (bridge / veth / bond / tun / tap / wg / dummy ...)
+  [[ "${p:A}" == */devices/virtual/net/* ]] && return 1
+
+  # a real NIC is backed by a bus device (pci / usb / vmbus / platform ...)
+  [[ -e "$p/device" ]] || return 1
+
+  return 0
+}
+
+# Result is returned through this global on purpose:
+# calling the function via $(...) would add one fork per second.
+typeset -g __prompt_ip_result=""
+
+__prompt_collect_ip() {
+  # $1: 4 | 6
+  # $2: 1 => include virtual NICs, otherwise physical NICs only
+  local family="$1"
+  local allow_virtual="${2:-0}"
+
+  local -a lines fields out
+  local line ifc state a
+
+  __prompt_ip_result=""
+
+  # `command` avoids the `ip --color=auto` alias defined later in this file
+  # (aliases are expanded when a function is *defined*, so re-sourcing the
+  #  theme would otherwise bake the alias into this function).
+  lines=("${(@f)$(command ip -br -${family} addr show 2>/dev/null)}")
+
+  for line in "${lines[@]}"; do
+    [[ -z "$line" ]] && continue
+
+    fields=(${=line})
+    ifc="${fields[1]%%@*}"
+    state="${fields[2]}"
+
+    [[ "$ifc" == "lo" ]] && continue
+    [[ "$state" == "UP" ]] || continue
+
+    if [[ "$allow_virtual" != "1" ]]; then
+      __prompt_nic_is_physical "$ifc" || continue
+    fi
+
+    for a in "${(@)fields[3,-1]}"; do
+      if [[ "$family" == "4" ]]; then
+        # accept only 1.2.3.4/24 (ignore "metric 100" and friends)
+        [[ "$a" =~ '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$' ]] || continue
+      else
+        [[ "$a" =~ '^[0-9a-fA-F:]+/[0-9]+$' ]] || continue
+        [[ "$a" == *:* ]] || continue
+        [[ "$a" == "::1/128" ]] && continue
+        if [[ "${CHIZURU_SHOW_IPV6_LINKLOCAL:-0}" != "1" ]]; then
+          [[ "${(L)a}" == fe80:* ]] && continue
+        fi
+      fi
+      out+=("$a")
+    done
+  done
+
+  __prompt_ip_result="${(j:, :)out}"
+  return 0
 }
 
 __prompt_env_tag() {
@@ -88,6 +183,8 @@ __prompt_host_tag() {
 }
 
 typeset -g ip_addr=""
+typeset -g ip6_addr=""
+typeset -g ip_render=""
 typeset -g host_tag="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
 typeset -g env_tag=""
 typeset -g env_prefix=""
@@ -95,6 +192,7 @@ typeset -g container_line=""
 typeset -g time_str=""
 typeset -g hnode_count=0
 typeset -g __ip_addr_last=""
+typeset -g __ip6_addr_last=""
 typeset -g __host_tag_last=""
 typeset -g __env_tag_last=""
 typeset -g __time_str_last=""
@@ -277,7 +375,7 @@ __detect_container_line() {
 #   - hnode count
 #
 # Dynamic / realtime:
-#   - IPv4 addresses
+#   - IPv4 / IPv6 addresses
 #   - clock
 #
 # The realtime path intentionally NEVER refreshes the static values.
@@ -303,15 +401,64 @@ __refresh_prompt_static_vars() {
   hnode_count=${#__cd_history[@]}
 }
 
-__refresh_prompt_dynamic_vars() {
-  local now_ip="$(__prompt_ipv4_up)"
-
-  if [[ -z "$now_ip" ]]; then
-    now_ip="$(ifconfig ens160 2>/dev/null | grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | head -1)"
+# Build the whole IP block (including its trailing newline) as one string.
+#
+# It must be pre-rendered here rather than assembled inside PROMPT, because
+# prompt substitution is NOT recursive: ${ip_render} is expanded once, so the
+# text it yields may contain %F{...} prompt escapes but not further ${...}.
+__render_ip_lines() {
+  if [[ "${CHIZURU_SHOW_IP:-1}" != "1" ]]; then
+    ip_render=""
+    return
   fi
 
-  ip_addr="$now_ip"
+  local out=""
+
+  if [[ "${CHIZURU_SHOW_IPV6:-0}" == "1" ]]; then
+    out+="%F{yellow}[IPv4: ${ip_addr}]%f"$'\n'
+    # hide the v6 line entirely when the host has no global IPv6
+    [[ -n "$ip6_addr" ]] && out+="%F{yellow}[IPv6: ${ip6_addr}]%f"$'\n'
+  else
+    out+="%F{yellow}[IP: ${ip_addr}]%f"$'\n'
+  fi
+
+  ip_render="$out"
+}
+
+__refresh_prompt_dynamic_vars() {
+  local allow_virtual="${CHIZURU_SHOW_VIRTUAL_NIC:-0}"
+  local fallback="${CHIZURU_NIC_FALLBACK_ANY:-1}"
+
+  # ---- IPv4 ----
+  __prompt_collect_ip 4 "$allow_virtual"
+  ip_addr="$__prompt_ip_result"
+
+  if [[ -z "$ip_addr" && "$allow_virtual" != "1" && "$fallback" == "1" ]]; then
+    __prompt_collect_ip 4 1
+    ip_addr="$__prompt_ip_result"
+  fi
+
+  # last resort (kept from the original implementation)
+  if [[ -z "$ip_addr" ]]; then
+    ip_addr="$(command ifconfig ens160 2>/dev/null | command grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | command head -1)"
+  fi
+
+  # ---- IPv6 ----
+  if [[ "${CHIZURU_SHOW_IPV6:-0}" == "1" ]]; then
+    __prompt_collect_ip 6 "$allow_virtual"
+    ip6_addr="$__prompt_ip_result"
+
+    if [[ -z "$ip6_addr" && "$allow_virtual" != "1" && "$fallback" == "1" ]]; then
+      __prompt_collect_ip 6 1
+      ip6_addr="$__prompt_ip_result"
+    fi
+  else
+    ip6_addr=""
+  fi
+
   time_str="$(date +%H:%M:%S 2>/dev/null)"
+
+  __render_ip_lines
 }
 
 # Full refresh is used at normal prompt lifecycle boundaries.
@@ -323,6 +470,7 @@ __refresh_prompt_vars() {
 
 __refresh_prompt_vars
 __ip_addr_last="$ip_addr"
+__ip6_addr_last="$ip6_addr"
 __host_tag_last="$host_tag"
 __env_tag_last="$env_tag"
 __time_str_last="$time_str"
@@ -331,7 +479,7 @@ __hnode_count_last=$hnode_count
 # --- REALTIME IP + CLOCK (ZLE fd-event driven) ---
 #
 # Realtime values:
-#   - IPv4 addresses
+#   - IPv4 / IPv6 addresses
 #   - clock
 #
 # Event-driven/static values:
@@ -444,6 +592,7 @@ __chizuru_realtime_fd_handler() {
   # Realtime path: ONLY IP + time.
   __refresh_prompt_dynamic_vars
   __ip_addr_last="$ip_addr"
+  __ip6_addr_last="$ip6_addr"
   __time_str_last="$time_str"
 
   # We are already being called from ZLE's fd event loop, not from a signal
@@ -529,12 +678,9 @@ configure_prompt() {
     local hnode_part='%F{#FF8A3D}[hnode: ${hnode_count}]%f'
     local time_part='%F{#C205E9}[${time_str}]%f'
 
-    local ip_line=''
-    if [[ "${CHIZURU_SHOW_IP:-1}" == "1" ]]; then
-      ip_line='${yellow_c}[IP: ${ip_addr}]%f'$'\n'
-    else
-      ip_line=''
-    fi
+    # The IP block (IPv4 only / IPv4 + IPv6, incl. its trailing newline) is
+    # pre-rendered by __render_ip_lines and already honours CHIZURU_SHOW_IP.
+    local ip_line='${ip_render}'
 
     PROMPT=$'${container_line}${green_c}${env_prefix}'"${host_part}${hnode_part}"$'${yellow_c}'"${time_part}"$'\n'"${ip_line}"$'${use_color}|-%d\n${use_color}|-%n${yellow_c}::${cyan_c}%C${yellow_c}::${use_color}# ${write_c}'
 }
@@ -727,12 +873,49 @@ __theme_check_update_on_login() {
 chizuru-update() { theme-update "$@"; }
 
 # Toggle commands (apply immediately)
-chizuru-show-ip() { CHIZURU_SHOW_IP=1; configure_prompt; zle && zle reset-prompt }
-chizuru-disable-ip() { CHIZURU_SHOW_IP=0; configure_prompt; zle && zle reset-prompt }
+__chizuru_apply_toggle() {
+  __refresh_prompt_dynamic_vars
+  configure_prompt
+  zle && zle reset-prompt
+}
+
+chizuru-show-ip() { CHIZURU_SHOW_IP=1; __chizuru_apply_toggle }
+chizuru-disable-ip() { CHIZURU_SHOW_IP=0; __chizuru_apply_toggle }
+
+# IPv4 only <-> IPv4 + IPv6
+chizuru-show-ipv6() { CHIZURU_SHOW_IPV6=1; __chizuru_apply_toggle }
+chizuru-disable-ipv6() { CHIZURU_SHOW_IPV6=0; __chizuru_apply_toggle }
+chizuru-show-ipv6-linklocal() { CHIZURU_SHOW_IPV6_LINKLOCAL=1; __chizuru_apply_toggle }
+chizuru-disable-ipv6-linklocal() { CHIZURU_SHOW_IPV6_LINKLOCAL=0; __chizuru_apply_toggle }
+
+# physical NIC only <-> physical + virtual NIC
+chizuru-show-virtual-nic() { CHIZURU_SHOW_VIRTUAL_NIC=1; __chizuru_apply_toggle }
+chizuru-disable-virtual-nic() { CHIZURU_SHOW_VIRTUAL_NIC=0; __chizuru_apply_toggle }
+
 chizuru-show-hostname() { CHIZURU_SHOW_HOSTNAME=1; configure_prompt; zle && zle reset-prompt }
 chizuru-disable-hostname() { CHIZURU_SHOW_HOSTNAME=0; configure_prompt; zle && zle reset-prompt }
 chizuru-show-container() { CHIZURU_SHOW_CONTAINER=1; __detect_container_line; configure_prompt; zle && zle reset-prompt }
 chizuru-disable-container() { CHIZURU_SHOW_CONTAINER=0; __detect_container_line; configure_prompt; zle && zle reset-prompt }
+
+# Debug helper: show how each NIC is classified
+chizuru-nic-list() {
+  local -a lines fields
+  local line ifc state kind
+
+  lines=("${(@f)$(command ip -br addr show 2>/dev/null)}")
+  for line in "${lines[@]}"; do
+    [[ -z "$line" ]] && continue
+    fields=(${=line})
+    ifc="${fields[1]%%@*}"
+    state="${fields[2]}"
+    if __prompt_nic_is_physical "$ifc"; then
+      kind="physical"
+    else
+      kind="virtual "
+    fi
+    printf "%-8s %-8s %-16s %s\n" "$kind" "$state" "$ifc" "${(j: :)fields[3,-1]}"
+  done
+}
 # ---------------------------
 
 if [ "$color_prompt" = yes ]; then
