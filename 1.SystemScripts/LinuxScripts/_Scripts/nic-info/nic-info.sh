@@ -19,7 +19,7 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin"
 export PATH
 
 MODE="physical"
-IP_MODE="normal"
+IP_MODE="ipv4"
 CUSTOM_FIELDS=0
 FIELDS=""
 UP_ONLY=0
@@ -437,9 +437,6 @@ if [ "$CUSTOM_FIELDS" -eq 0 ]; then
 
         dual)
             FIELDS="nic,state,mac,alias,ipv4,ipv6"
-            ;;
-        normal)
-            FIELDS="nic,mac,alias,ipv4"
             ;;
     esac
 
