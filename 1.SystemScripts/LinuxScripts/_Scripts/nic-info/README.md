@@ -1,6 +1,7 @@
 # nic-info.sh 使用说明
 
 `nic-info.sh` 是一个用于快速查看 Linux 网络接口信息的 Shell 脚本。
+需要配合 `nic-aliases.sh` 使用。
 
 脚本支持按接口类型、接口状态、IP 版本和显示字段进行筛选，适合在 Ubuntu Server 等环境中作为日常网络排障和接口管理工具使用。
 
