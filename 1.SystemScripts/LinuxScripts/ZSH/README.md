@@ -2,6 +2,10 @@
   主题默认在最前面显示host名，你可以手动编辑.oh-my-zsh/theme/Chizuru.zsh-theme文件的display_name参数来达到自定义的目的！
   修改完成后需要手动 source .zshrc 一下。或者重新登录一下就好了。
 
+  ```
+  cp ~/.zshrc ~/.zshrc.bak.$(date +%Y%m%d%H%M%S) && sed -i -E '\#^[[:space:]]*source[[:space:]]+.*zsh-autosuggestions\.zsh[[:space:]]*$#d;\#^[[:space:]]*source[[:space:]]+.*zsh-syntax-highlighting\.zsh[[:space:]]*$#d;\#^[[:space:]]*plugins\+=\(zsh-autosuggestions zsh-syntax-highlighting\)[[:space:]]*$#d;\#^[[:space:]]*source[[:space:]]+.*oh-my-zsh\.sh#i plugins+=(zsh-autosuggestions zsh-syntax-highlighting)' ~/.zshrc && OMZ_DIR="${ZSH:-$HOME/.oh-my-zsh}" && rm -rf "$OMZ_DIR/plugins/zsh-autosuggestions" "$OMZ_DIR/plugins/zsh-syntax-highlighting" && omz update
+  ```
+
 # ZSH_INSTALL.sh
   
   这个是ZSH自动安装脚本, 可以使用命令一键安装
