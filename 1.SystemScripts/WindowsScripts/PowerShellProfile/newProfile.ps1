@@ -1,18 +1,22 @@
 $history = New-Object System.Collections.ArrayList
 $MAX_HISTORY = 500
+$ECHO_IPv4 = $true
+$ECHO_IPv6 = $false
 
 function prompt {
-    $ipAddress = Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway } | Select-Object -ExpandProperty IPAddress
-    #all ip
-    #$ipAddress = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.AddressState -eq 'Preferred' } | Select-Object -ExpandProperty IPAddress) -join ','
+    $ipAddressV4 = (Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway } | Select-Object -ExpandProperty IPAddress | Where-Object { ([System.Net.IPAddress]::Parse($_)).AddressFamily -eq 'InterNetwork' }) -join ','
+    $ipAddressV6 = (Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway } | Select-Object -ExpandProperty IPAddress | Where-Object { ([System.Net.IPAddress]::Parse($_)).AddressFamily -eq 'InterNetworkV6' })  -join ', '
     $isRoot = (([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator"))
     $color  = if ($isRoot) {"Red"} else {"DarkGreen"}
     $marker = if ($isRoot) {"#"}   else {"$"}
-    $ntime = Get-Date -Format "yyyy/MM/dd HH:mm:ss"
+    # $ntime = Get-Date -Format "yyyy/MM/dd HH:mm:ss"
+    $ntime = Get-Date -Format "HH:mm:ss"
     $history_node = @($history).Length
 
+    Write-Host "[hnode:$history_node]" -ForegroundColor DarkMagenta -NoNewline
     Write-Host "[$ntime]" -ForegroundColor DarkYellow
-    Write-Host "[$ipAddress][hnode:$history_node]" -ForegroundColor DarkGreen
+    if ($ECHO_IPv4){Write-Host "[IPv4: $ipAddressV4]" -ForegroundColor DarkGreen}
+    if ($ECHO_IPv6){Write-Host "[IPv6: $ipAddressV6]" -ForegroundColor DarkGreen}
     Write-Host "[-]-" -ForegroundColor $color -nonewline
     Write-Host "$pwd\~" -ForegroundColor DarkCyan
     Write-Host "[=]-" -ForegroundColor $color -nonewline
@@ -84,6 +88,13 @@ function bn(){
 function bl(){
   back -l
 }
+
+#region conda initialize
+# !! Contents within this block are managed by 'conda init' !!
+If (Test-Path "C:\Users\oriki\anaconda3\Scripts\conda.exe") {
+   (& "C:\Users\oriki\anaconda3\Scripts\conda.exe" "shell.powershell" "hook") | Out-String | ?{$_} | Invoke-Expression
+}
+#endregion
 
 Set-Alias -Name ls -Value newls -Option AllScope
 Set-Alias -Name cd -Value newcd -Option AllScope
