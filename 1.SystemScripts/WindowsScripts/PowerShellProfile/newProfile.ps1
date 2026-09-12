@@ -3,6 +3,19 @@ $MAX_HISTORY = 500
 $ECHO_IPv4 = $true
 $ECHO_IPv6 = $false
 
+$Global:TitleClockTimer = [System.Timers.Timer]::new(1000)
+$Global:TitleClockTimer.AutoReset = $true
+
+Register-ObjectEvent `
+    -InputObject $Global:TitleClockTimer `
+    -EventName Elapsed `
+    -SourceIdentifier "PwshTitleClock" `
+    -Action {
+        $Host.UI.RawUI.WindowTitle = "PowerShell | $(Get-Date -Format 'HH:mm:ss')"
+    } | Out-Null
+
+$Global:TitleClockTimer.Start()
+
 function prompt {
     $ipAddressV4 = (Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway } | Select-Object -ExpandProperty IPAddress | Where-Object { ([System.Net.IPAddress]::Parse($_)).AddressFamily -eq 'InterNetwork' }) -join ','
     $ipAddressV6 = (Get-CimInstance Win32_NetworkAdapterConfiguration | Where-Object { $_.DefaultIPGateway } | Select-Object -ExpandProperty IPAddress | Where-Object { ([System.Net.IPAddress]::Parse($_)).AddressFamily -eq 'InterNetworkV6' })  -join ', '
