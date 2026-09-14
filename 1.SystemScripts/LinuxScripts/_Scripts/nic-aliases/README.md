@@ -3,6 +3,7 @@ PLZ add this service to your systemctl service.
 
 ```bash
 sudo vim /usr/bin/nic-aliases.sh
+sudo chmod +x /usr/bin/nic-aliases.sh
 sudo ln -s /usr/bin/nic-aliases.sh /usr/bin/nic-aliases
 
 sudo vim /etc/systemd/system/nic-aliases.service
