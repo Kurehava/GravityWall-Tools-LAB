@@ -1,4 +1,9 @@
 # nic-info.sh 使用说明
+```
+sudo vim /usr/bin/nic-info.sh
+sudo chmod +x /usr/bin/nic-info.sh
+sudo ln -s /usr/bin/nic-info.sh /usr/bin/nic-info
+```
 
 `nic-info.sh` 是一个用于快速查看 Linux 网络接口信息的 Shell 脚本。
 需要配合 `nic-aliases.sh` 使用。
