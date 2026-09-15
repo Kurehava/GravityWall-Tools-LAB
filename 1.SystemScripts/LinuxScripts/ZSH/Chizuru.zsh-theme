@@ -7,7 +7,7 @@ if [[ "$(tty)" == "/dev/ttyS0" && "$TERM" == "vt220" ]]; then
 fi
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.09.10.1"
+THEME_VERSION="2026.09.16.1"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -267,6 +267,11 @@ historys() {
   local target="${__cd_history[idx]}"
   # cd first, then truncate idx..end
   builtin cd -- "$target" || return 1
+  if [ "$?" -ne '1' ]; then
+    echo "$target"
+    echo '---'
+    command ls --color=auto -a --group-directories-first "$target"
+  fi
   __cd_history_truncate_from "$idx" >/dev/null
   zle && zle reset-prompt
 }
@@ -278,6 +283,11 @@ back() {
     return 0
   fi
   local target="${__cd_history[-1]}"
+  if [ "$?" -ne '1' ]; then
+    echo "$target"
+    echo '---'
+    command ls --color=auto -a --group-directories-first "$target"
+  fi
   builtin cd -- "$target" || return 1
   __cd_history_truncate_from "$n" >/dev/null
   zle && zle reset-prompt
