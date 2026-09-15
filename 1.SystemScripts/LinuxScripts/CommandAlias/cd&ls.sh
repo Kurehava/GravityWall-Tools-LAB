@@ -3,7 +3,7 @@ function cdls(){
     if [ $? -eq 0 ];then
         pwd
         echo '---'
-        ls -a
+        command ls --color=auto -a --group-directories-first
     fi
 }
 alias cd="cdls"
