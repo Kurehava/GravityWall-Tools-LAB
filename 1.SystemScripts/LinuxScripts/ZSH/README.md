@@ -5,6 +5,29 @@
   ```
   cp ~/.zshrc ~/.zshrc.bak.$(date +%Y%m%d%H%M%S) && sed -i -E '\#^[[:space:]]*source[[:space:]]+.*zsh-autosuggestions\.zsh[[:space:]]*$#d;\#^[[:space:]]*source[[:space:]]+.*zsh-syntax-highlighting\.zsh[[:space:]]*$#d;\#^[[:space:]]*plugins\+=\(zsh-autosuggestions zsh-syntax-highlighting\)[[:space:]]*$#d;\#^[[:space:]]*source[[:space:]]+.*oh-my-zsh\.sh#i plugins+=(zsh-autosuggestions zsh-syntax-highlighting)' ~/.zshrc && OMZ_DIR="${ZSH:-$HOME/.oh-my-zsh}" && rm -rf "$OMZ_DIR/plugins/zsh-autosuggestions" "$OMZ_DIR/plugins/zsh-syntax-highlighting" && omz update
   ```
+如果旧系统或者是zsh旧版本，在应用主题文件时出现了报错：  
+(anon):6: bad math expression: operand expected at `^fg'  
+那么如果以下文件你可以修改或者是修改了没有问题，那么请在以下的目录下新建该文件，进行绕过。  
+```
+# ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/lib/spectrum.zsh
+typeset -AHg FX FG BG
+
+FX=(
+  reset     "%{"$'\e'"[00m%}"
+  bold      "%{"$'\e'"[01m%}" no-bold      "%{"$'\e'"[22m%}"
+  dim       "%{"$'\e'"[02m%}" no-dim       "%{"$'\e'"[22m%}"
+  italic    "%{"$'\e'"[03m%}" no-italic    "%{"$'\e'"[23m%}"
+  underline "%{"$'\e'"[04m%}" no-underline "%{"$'\e'"[24m%}"
+  blink     "%{"$'\e'"[05m%}" no-blink     "%{"$'\e'"[25m%}"
+  reverse   "%{"$'\e'"[07m%}" no-reverse   "%{"$'\e'"[27m%}"
+)
+
+for color in {000..255}; do
+  FG[$color]="%{"$'\e'"[38;5;${color}m%}"
+  BG[$color]="%{"$'\e'"[48;5;${color}m%}"
+done
+unset color
+```
 
 # ZSH_INSTALL.sh
   
