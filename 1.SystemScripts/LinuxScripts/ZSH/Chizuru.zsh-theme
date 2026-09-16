@@ -1,27 +1,193 @@
 # author：橘陽 (kurehava) ちずる
 # Based Kali ZSH Theme.
 # Minimal twoline prompt (with dynamic IP/host + container tag)
+#
+# ============================================================================
+#  VERSION-AGNOSTIC EDITION
+#
+#  Target: zsh 4.3.11 ... 5.0.2 ... 5.9 ... and newer.
+#
+#  Design rule: NOTHING in this file may hard-depend on a zsh feature,
+#  a module, or an external command that might not exist.  Every such use is
+#  probed once at load time and degrades gracefully:
+#
+#    24bit color  %F{#RRGGBB}  (zsh >= 5.7)   -> xterm-256 index -> basic name
+#    zle reset-prompt -f nolast (zsh >= 5.9)  -> guarded redraw  -> precmd only
+#    zsh/zpty + zle -F ticker                 -> TRAPALRM (opt-in) -> precmd only
+#    zsh/datetime strftime                    -> date(1)
+#    ip -br addr  (iproute2 >= 4.x)           -> ip -o addr -> ifconfig -> hostname -I
+#    GNU ls/grep/diff/ip --color options      -> probed before aliasing
+#    add-zsh-hook precmd/chpwd                -> plain precmd()/chpwd()
+#
+#  Notable fixes vs. the original file:
+#    * removed the `unset CHIZURU_*` block, which contradicted the documented
+#      "you may set these in ~/.zshrc before sourcing" behaviour
+#    * container/WSL + hostname detection is now cached (no fork per prompt)
+#    * array element deletion no longer relies on `arr[i]=()`
+#    * =~ regex matching replaced by plain zsh globs (no zsh/regex dependency)
+# ============================================================================
 
 if [[ "$(tty)" == "/dev/ttyS0" && "$TERM" == "vt220" ]]; then
     export TERM=xterm-256color
 fi
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.09.16.1"
+THEME_VERSION="2026.09.16.2"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
 
-unset CHIZURU_SHOW_IP CHIZURU_SHOW_IPV6 CHIZURU_SHOW_IPV6_LINKLOCAL \
-      CHIZURU_SHOW_VIRTUAL_NIC CHIZURU_NIC_FALLBACK_ANY \
-      CHIZURU_SHOW_HOSTNAME CHIZURU_SHOW_CONTAINER
+setopt prompt_subst
+
+# ===========================================================================
+# 0. zsh version / capability probing
+# ===========================================================================
+
+typeset -gi __chizuru_v_major=0 __chizuru_v_minor=0 __chizuru_v_patch=0
+
+__chizuru_parse_zsh_version() {
+  local ver="${ZSH_VERSION%%-*}"
+  local -a p
+  local x
+  p=("${(@s:.:)ver}")
+
+  x="${p[1]:-0}"; x="${x//[^0-9]/}"; [[ -n "$x" ]] || x=0; __chizuru_v_major=$x
+  x="${p[2]:-0}"; x="${x//[^0-9]/}"; [[ -n "$x" ]] || x=0; __chizuru_v_minor=$x
+  x="${p[3]:-0}"; x="${x//[^0-9]/}"; [[ -n "$x" ]] || x=0; __chizuru_v_patch=$x
+}
+__chizuru_parse_zsh_version
+
+# __chizuru_zsh_at_least MAJOR [MINOR] [PATCH]
+__chizuru_zsh_at_least() {
+  local -i M=${1:-0} m=${2:-0} p=${3:-0}
+  (( __chizuru_v_major > M )) && return 0
+  (( __chizuru_v_major < M )) && return 1
+  (( __chizuru_v_minor > m )) && return 0
+  (( __chizuru_v_minor < m )) && return 1
+  (( __chizuru_v_patch >= p ))
+}
+
+# zsh/datetime gives strftime + $EPOCHSECONDS => one fewer fork per second.
+typeset -gi __chizuru_have_datetime=0
+if zmodload zsh/datetime 2>/dev/null; then
+  __chizuru_have_datetime=1
+fi
+
+# ===========================================================================
+# 1. Color capability
+#
+# %F{#RRGGBB} only exists from zsh 5.7 onward.  On 5.0.2 it is an unknown
+# color name and the prompt silently loses its accent colors, so the accents
+# are resolved once here into whatever the running zsh + terminal can do.
+#
+# Override with:  CHIZURU_COLOR_MODE=truecolor|256|basic|none
+# ===========================================================================
+
+typeset -gi __chizuru_term_colors=8
+typeset -g  __chizuru_color_mode="basic"
+
+typeset -g CZ_C_INFO="" CZ_C_ACCENT="" CZ_C_TIME=""
+typeset -g CZ_C_RESET="" CZ_C_YELLOW="" CZ_C_GREEN="" CZ_C_CYAN="" CZ_C_WHITE=""
+typeset -g CZ_C_USER=""
+
+__chizuru_detect_term_colors() {
+  local n=""
+
+  if zmodload zsh/terminfo 2>/dev/null; then
+    n="${terminfo[colors]:-}"
+  fi
+
+  if [[ -z "$n" || "$n" == *[^0-9]* ]]; then
+    if command -v tput >/dev/null 2>&1; then
+      n="$(command tput colors 2>/dev/null)"
+    fi
+  fi
+
+  if [[ -z "$n" || "$n" == *[^0-9]* ]]; then
+    # last resort: guess from $TERM
+    case "${TERM:-}" in
+      *-direct*)           n=16777216 ;;
+      *256color*|*-256*)   n=256 ;;
+      ""|dumb)             n=0 ;;
+      *)                   n=8 ;;
+    esac
+  fi
+
+  __chizuru_term_colors=$n
+}
+
+__chizuru_detect_color_mode() {
+  if [[ -n "${CHIZURU_COLOR_MODE:-}" ]]; then
+    __chizuru_color_mode="$CHIZURU_COLOR_MODE"
+    return
+  fi
+
+  if [[ -z "${TERM:-}" || "${TERM}" == dumb ]]; then
+    __chizuru_color_mode="none"
+    return
+  fi
+
+  if (( __chizuru_term_colors < 8 )); then
+    __chizuru_color_mode="none"
+  elif (( __chizuru_term_colors < 256 )); then
+    __chizuru_color_mode="basic"
+  elif __chizuru_zsh_at_least 5 7; then
+    # zsh >= 5.7 understands #RRGGBB and downsamples on its own when the
+    # terminal is not 24bit capable.
+    __chizuru_color_mode="truecolor"
+  else
+    __chizuru_color_mode="256"
+  fi
+}
+
+__chizuru_build_colors() {
+  __chizuru_detect_term_colors
+  __chizuru_detect_color_mode
+
+  case "$__chizuru_color_mode" in
+    truecolor)
+      CZ_C_INFO="%F{#75C8FF}"   # container / WSL tag
+      CZ_C_ACCENT="%F{#FF8A3D}" # venv / conda tag, hnode counter
+      CZ_C_TIME="%F{#C205E9}"   # clock
+      ;;
+    256)
+      # nearest xterm-256 cube entries for the three accents above
+      CZ_C_INFO="%F{117}"
+      CZ_C_ACCENT="%F{209}"
+      CZ_C_TIME="%F{128}"
+      ;;
+    basic)
+      CZ_C_INFO="%F{cyan}"
+      CZ_C_ACCENT="%F{yellow}"
+      CZ_C_TIME="%F{magenta}"
+      ;;
+    *)
+      __chizuru_color_mode="none"
+      CZ_C_INFO=""; CZ_C_ACCENT=""; CZ_C_TIME=""
+      ;;
+  esac
+
+  if [[ "$__chizuru_color_mode" == "none" ]]; then
+    CZ_C_RESET=""; CZ_C_YELLOW=""; CZ_C_GREEN=""; CZ_C_CYAN=""; CZ_C_WHITE=""
+    CZ_C_USER=""
+  else
+    CZ_C_RESET="%f"
+    CZ_C_YELLOW="%F{yellow}"
+    CZ_C_GREEN="%F{green}"
+    CZ_C_CYAN="%F{cyan}"
+    CZ_C_WHITE="%F{white}"
+    # %(#.A.B) is evaluated at prompt time, so su/sudo -s recolors live
+    CZ_C_USER='%(#.%F{red}.%F{green})'
+  fi
+}
+__chizuru_build_colors
 
 # ---------------------------
 # User-configurable display name (highest priority)
 # - default empty: show hostname
 # - set: show this value instead of hostname
 # ---------------------------
-typeset -g display_name=""
+typeset -g display_name="${display_name:-}"
 
 # ---------------------------
 # Toggle switches (runtime)
@@ -39,8 +205,6 @@ typeset -g CHIZURU_SHOW_IP="${CHIZURU_SHOW_IP:-1}"
 typeset -g CHIZURU_SHOW_IPV6="${CHIZURU_SHOW_IPV6:-0}"
 
 # Include fe80::/10 link-local addresses (only meaningful when IPv6 is on)
-#   0 : hide link-local (recommended, they exist on every NIC)
-#   1 : show link-local too
 typeset -g CHIZURU_SHOW_IPV6_LINKLOCAL="${CHIZURU_SHOW_IPV6_LINKLOCAL:-0}"
 
 # NIC scope
@@ -49,45 +213,75 @@ typeset -g CHIZURU_SHOW_IPV6_LINKLOCAL="${CHIZURU_SHOW_IPV6_LINKLOCAL:-0}"
 typeset -g CHIZURU_SHOW_VIRTUAL_NIC="${CHIZURU_SHOW_VIRTUAL_NIC:-0}"
 
 # Safety net for "physical only" mode.
-# Inside a container / WSL / bond-only host there may be NO physical NIC at all,
-# which would leave the prompt showing an empty address.
-#   1 : if physical-only finds nothing, retry once including virtual NICs
-#   0 : show nothing in that case
 typeset -g CHIZURU_NIC_FALLBACK_ANY="${CHIZURU_NIC_FALLBACK_ANY:-1}"
 
 typeset -g CHIZURU_SHOW_HOSTNAME="${CHIZURU_SHOW_HOSTNAME:-1}"
 typeset -g CHIZURU_SHOW_CONTAINER="${CHIZURU_SHOW_CONTAINER:-1}"
 
+# Realtime (per-second) clock/IP refresh.  0 disables it completely.
+typeset -g CHIZURU_REALTIME="${CHIZURU_REALTIME:-1}"
+
+# Opt-in TMOUT/TRAPALRM fallback, used only when zsh/zpty is unavailable.
+# It works on every zsh ever built, but it hijacks TMOUT and SIGALRM, so it
+# stays off unless you ask for it.
+typeset -g CHIZURU_REALTIME_FALLBACK="${CHIZURU_REALTIME_FALLBACK:-0}"
+
 force_color_prompt=yes
 
-if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-        color_prompt=yes
-    else
-        color_prompt=
-    fi
+if [[ -n "$force_color_prompt" && "$__chizuru_color_mode" != "none" ]]; then
+    color_prompt=yes
+else
+    color_prompt=
 fi
 
 cp_fn() {
-    cp_fn_floder_path="`pwd | sed 's:/: :g' | awk '{print $NF}'`"
+    # kept for backwards compatibility; no longer forks pwd|sed|awk
+    cp_fn_floder_path="${PWD:t}"
 }
 
-setopt prompt_subst
-
-# ---------------------------
-# NIC classification
+# ===========================================================================
+# 2. NIC classification + IP collection
 #
+# CentOS/RHEL 7 is the classic "zsh 5.0.2" host, and its iproute2 has no
+# `ip -br`.  The backend is therefore probed once and can be any of:
+#   ip-br    : ip -br -4 addr show          (iproute2 >= 4.x)
+#   ip-o     : ip -o -4 addr show           (every iproute2)
+#   ifconfig : net-tools, old and new output formats
+#   hostname : hostname -I                  (IPv4 only, last resort)
+# ===========================================================================
+
+typeset -g __chizuru_ip_backend=""
+
+__chizuru_detect_ip_backend() {
+  [[ -n "$__chizuru_ip_backend" ]] && return 0
+
+  if command -v ip >/dev/null 2>&1; then
+    if command ip -br link show >/dev/null 2>&1; then
+      __chizuru_ip_backend="ip-br"
+    else
+      __chizuru_ip_backend="ip-o"
+    fi
+  elif command -v ifconfig >/dev/null 2>&1; then
+    __chizuru_ip_backend="ifconfig"
+  elif command -v hostname >/dev/null 2>&1; then
+    __chizuru_ip_backend="hostname"
+  else
+    __chizuru_ip_backend="none"
+  fi
+  return 0
+}
+
 # /sys/class/net/<if> is a symlink:
 #   physical : ../../devices/pci0000:00/.../net/ens160
 #   virtual  : ../../devices/virtual/net/docker0
-#
-# ${p:A} resolves the symlink with zsh's own modifier, so this costs no fork
-# even though it runs once per second per interface.
-# ---------------------------
+# ${p:A} resolves it with zsh's own modifier, so this costs no fork.
 __prompt_nic_is_physical() {
-  # $1: interface name (may carry an "@ifN" suffix, e.g. eth0@if12)
   local ifc="${1%%@*}"
   [[ -z "$ifc" || "$ifc" == "lo" ]] && return 1
+
+  # No sysfs at all (non-Linux, very stripped container): cannot classify,
+  # so do not hide everything - treat it as physical.
+  [[ -d /sys/class/net ]] || return 0
 
   local p="/sys/class/net/$ifc"
   [[ -e "$p" ]] || return 1
@@ -101,20 +295,57 @@ __prompt_nic_is_physical() {
   return 0
 }
 
-# Result is returned through this global on purpose:
-# calling the function via $(...) would add one fork per second.
-typeset -g __prompt_ip_result=""
+__chizuru_if_is_up() {
+  local ifc="${1%%@*}"
+  local st=""
+  [[ -n "$ifc" ]] || return 1
+  if [[ -r "/sys/class/net/$ifc/operstate" ]]; then
+    st="$(<"/sys/class/net/$ifc/operstate")"
+  fi
+  case "$st" in
+    up|unknown|"") return 0 ;;   # "" => no sysfs, assume usable
+    *)             return 1 ;;
+  esac
+}
 
-__prompt_collect_ip() {
-  # $1: 4 | 6
-  # $2: 1 => include virtual NICs, otherwise physical NICs only
-  local family="$1"
-  local allow_virtual="${2:-0}"
+typeset -ga __chizuru_ip_acc
 
-  local -a lines fields out
+# Validate + de-duplicate one candidate address.
+# Both "1.2.3.4" and "1.2.3.4/24" are accepted, because ifconfig output does
+# not always carry a prefix length.
+__chizuru_ip_accept() {
+  local family="$1" a="$2" x
+
+  [[ -n "$a" ]] || return 0
+  a="${a%\%*}"            # strip IPv6 zone id (fe80::1%eth0)
+
+  if [[ "$family" == "4" ]]; then
+    if [[ "$a" != <0-255>.<0-255>.<0-255>.<0-255> && \
+          "$a" != <0-255>.<0-255>.<0-255>.<0-255>/<0-32> ]]; then
+      return 0
+    fi
+    [[ "$a" == 127.* ]] && return 0
+  else
+    [[ "$a" == *:* ]] || return 0
+    [[ "$a" == *[^0-9a-fA-F:/]* ]] && return 0
+    [[ "$a" == */* && "$a" != */<0-128> ]] && return 0
+    [[ "$a" == "::1/128" || "$a" == "::1" ]] && return 0
+    if [[ "${CHIZURU_SHOW_IPV6_LINKLOCAL:-0}" != "1" ]]; then
+      [[ "${(L)a}" == fe80:* ]] && return 0
+    fi
+  fi
+
+  for x in "${__chizuru_ip_acc[@]}"; do
+    [[ "$x" == "$a" ]] && return 0
+  done
+  __chizuru_ip_acc+=("$a")
+  return 0
+}
+
+__chizuru_collect_ip_br() {
+  local family="$1" allow_virtual="$2"
+  local -a lines fields
   local line ifc state a
-
-  __prompt_ip_result=""
 
   # `command` avoids the `ip --color=auto` alias defined later in this file
   # (aliases are expanded when a function is *defined*, so re-sourcing the
@@ -122,38 +353,210 @@ __prompt_collect_ip() {
   lines=("${(@f)$(command ip -br -${family} addr show 2>/dev/null)}")
 
   for line in "${lines[@]}"; do
-    [[ -z "$line" ]] && continue
-
+    [[ -n "$line" ]] || continue
     fields=(${=line})
+    (( ${#fields} >= 2 )) || continue
+
     ifc="${fields[1]%%@*}"
     state="${fields[2]}"
 
     [[ "$ifc" == "lo" ]] && continue
-    [[ "$state" == "UP" ]] || continue
+    [[ "$state" == "UP" || "$state" == "UNKNOWN" ]] || continue
 
     if [[ "$allow_virtual" != "1" ]]; then
       __prompt_nic_is_physical "$ifc" || continue
     fi
 
     for a in "${(@)fields[3,-1]}"; do
-      if [[ "$family" == "4" ]]; then
-        # accept only 1.2.3.4/24 (ignore "metric 100" and friends)
-        [[ "$a" =~ '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$' ]] || continue
-      else
-        [[ "$a" =~ '^[0-9a-fA-F:]+/[0-9]+$' ]] || continue
-        [[ "$a" == *:* ]] || continue
-        [[ "$a" == "::1/128" ]] && continue
-        if [[ "${CHIZURU_SHOW_IPV6_LINKLOCAL:-0}" != "1" ]]; then
-          [[ "${(L)a}" == fe80:* ]] && continue
-        fi
-      fi
-      out+=("$a")
+      __chizuru_ip_accept "$family" "$a"
     done
   done
+}
 
-  __prompt_ip_result="${(j:, :)out}"
+__chizuru_collect_ip_o() {
+  # iproute2 without -br:  "2: ens160    inet 192.168.0.10/24 brd ... \ ..."
+  local family="$1" allow_virtual="$2"
+  local -a lines fields
+  local line ifc
+  local -i i
+
+  lines=("${(@f)$(command ip -o -${family} addr show 2>/dev/null)}")
+
+  for line in "${lines[@]}"; do
+    [[ -n "$line" ]] || continue
+    fields=(${=line})
+    (( ${#fields} >= 4 )) || continue
+
+    ifc="${fields[2]%%@*}"
+    [[ -z "$ifc" || "$ifc" == "lo" ]] && continue
+    __chizuru_if_is_up "$ifc" || continue
+
+    if [[ "$allow_virtual" != "1" ]]; then
+      __prompt_nic_is_physical "$ifc" || continue
+    fi
+
+    for (( i = 3; i <= ${#fields}; i++ )); do
+      if [[ "${fields[i]}" == "inet" || "${fields[i]}" == "inet6" ]]; then
+        __chizuru_ip_accept "$family" "${fields[i+1]}"
+        break
+      fi
+    done
+  done
+}
+
+typeset -g __chizuru_plen=""
+
+# dotted / hex netmask -> prefix length (sets $__chizuru_plen)
+__chizuru_mask2plen() {
+  __chizuru_plen=""
+  local m="$1"
+  [[ -n "$m" ]] || return 1
+
+  local -i v=0 n=0 i
+  if [[ "$m" == 0[xX]* ]]; then
+    m="${m#0[xX]}"
+    [[ "$m" == *[^0-9a-fA-F]* ]] && return 1
+    (( v = 16#$m ))
+  elif [[ "$m" == <0-255>.<0-255>.<0-255>.<0-255> ]]; then
+    local -a o
+    o=("${(@s:.:)m}")
+    (( v = (10#${o[1]} << 24) + (10#${o[2]} << 16) + (10#${o[3]} << 8) + 10#${o[4]} ))
+  else
+    return 1
+  fi
+
+  for (( i = 31; i >= 0; i-- )); do
+    if (( (v >> i) & 1 )); then
+      (( n++ ))
+    else
+      break
+    fi
+  done
+  __chizuru_plen="$n"
   return 0
 }
+
+__chizuru_collect_ifconfig() {
+  # Handles both output dialects:
+  #   new: inet 192.168.0.10  netmask 255.255.255.0
+  #   old: inet addr:192.168.0.10  Bcast:...  Mask:255.255.255.0
+  #   new: inet6 fe80::1  prefixlen 64
+  #   old: inet6 addr: fe80::1/64 Scope:Link
+  local family="$1" allow_virtual="$2"
+  local -a lines fields
+  local line ifc addr plen tok
+  local -i cur_ok=0 i j
+
+  lines=("${(@f)$(command ifconfig -a 2>/dev/null || command ifconfig 2>/dev/null)}")
+
+  for line in "${lines[@]}"; do
+    [[ -n "$line" ]] || continue
+
+    # a line that does not start with whitespace opens a new interface block
+    if [[ "$line" != [[:space:]]* ]]; then
+      fields=(${=line})
+      ifc="${fields[1]%%:*}"
+      cur_ok=1
+      if [[ -z "$ifc" || "$ifc" == "lo" || "$ifc" == lo<-> ]]; then
+        cur_ok=0
+      fi
+      if (( cur_ok )) && [[ "$allow_virtual" != "1" ]]; then
+        __prompt_nic_is_physical "$ifc" || cur_ok=0
+      fi
+      if (( cur_ok )); then
+        __chizuru_if_is_up "$ifc" || cur_ok=0
+      fi
+    fi
+
+    (( cur_ok )) || continue
+
+    fields=(${=line})
+    for (( i = 1; i <= ${#fields}; i++ )); do
+      tok="${fields[i]}"
+      addr=""
+      plen=""
+
+      if [[ "$family" == "4" ]]; then
+        if [[ "$tok" == "inet" ]]; then
+          addr="${fields[i+1]:-}"
+          [[ "$addr" == "addr:" ]] && addr="${fields[i+2]:-}"
+          addr="${addr#addr:}"
+        else
+          continue
+        fi
+        [[ -n "$addr" ]] || continue
+        for (( j = i; j <= ${#fields}; j++ )); do
+          case "${fields[j]}" in
+            netmask) __chizuru_mask2plen "${fields[j+1]:-}" && plen="$__chizuru_plen" ;;
+            Mask:*)  __chizuru_mask2plen "${fields[j]#Mask:}" && plen="$__chizuru_plen" ;;
+          esac
+        done
+        [[ -n "$plen" && "$addr" != */* ]] && addr="${addr}/${plen}"
+        __chizuru_ip_accept 4 "$addr"
+      else
+        if [[ "$tok" == "inet6" ]]; then
+          addr="${fields[i+1]}"
+          [[ "$addr" == "addr:" ]] && addr="${fields[i+2]:-}"
+          addr="${addr#addr:}"
+        else
+          continue
+        fi
+        [[ -n "$addr" ]] || continue
+        if [[ "$addr" != */* ]]; then
+          for (( j = i; j <= ${#fields}; j++ )); do
+            [[ "${fields[j]}" == "prefixlen" ]] && plen="${fields[j+1]:-}"
+          done
+          [[ -n "$plen" && "$plen" != *[^0-9]* ]] && addr="${addr}/${plen}"
+        fi
+        __chizuru_ip_accept 6 "$addr"
+      fi
+    done
+  done
+}
+
+__chizuru_collect_hostname() {
+  local family="$1"
+  [[ "$family" == "4" ]] || return 0
+  local -a addrs
+  local a
+  addrs=(${=$(command hostname -I 2>/dev/null)})
+  for a in "${addrs[@]}"; do
+    __chizuru_ip_accept 4 "$a"
+  done
+}
+
+# Result is returned through this global on purpose:
+# calling the function via $(...) would add one fork per second.
+typeset -g __prompt_ip_result=""
+
+__prompt_collect_ip() {
+  # $1: 4 | 6
+  # $2: 1 => include virtual NICs, otherwise physical NICs only
+  emulate -L zsh
+  setopt prompt_subst
+
+  local family="$1"
+  local allow_virtual="${2:-0}"
+
+  __prompt_ip_result=""
+  __chizuru_ip_acc=()
+
+  __chizuru_detect_ip_backend
+
+  case "$__chizuru_ip_backend" in
+    ip-br)    __chizuru_collect_ip_br    "$family" "$allow_virtual" ;;
+    ip-o)     __chizuru_collect_ip_o     "$family" "$allow_virtual" ;;
+    ifconfig) __chizuru_collect_ifconfig "$family" "$allow_virtual" ;;
+    hostname) __chizuru_collect_hostname "$family" ;;
+  esac
+
+  __prompt_ip_result="${(j:, :)__chizuru_ip_acc}"
+  return 0
+}
+
+# ===========================================================================
+# 3. Static tags (env / host / container)
+# ===========================================================================
 
 __prompt_env_tag() {
   local env=""
@@ -163,23 +566,35 @@ __prompt_env_tag() {
     env="${VIRTUAL_ENV:t}"
   fi
   [[ -n "$env" ]] && print -r -- "$env"
+  return 0
 }
+
+# Hostname is resolved once; $HOST is a zsh builtin parameter, so no fork.
+typeset -g __chizuru_hostname_cached=""
+
+__chizuru_resolve_hostname() {
+  local h="${HOST:-}"
+  h="${h%%.*}"
+  if [[ -z "$h" ]] && command -v hostname >/dev/null 2>&1; then
+    h="$(command hostname -s 2>/dev/null)"
+    [[ -z "$h" ]] && h="$(command hostname 2>/dev/null)"
+    h="${h%%.*}"
+  fi
+  [[ -z "$h" ]] && h="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
+  __chizuru_hostname_cached="$h"
+}
+__chizuru_resolve_hostname
 
 __prompt_host_tag() {
   # Priority:
   # 1) display_name (if set)
   # 2) hostname
   # 3) THEME_HOST_FALLBACK_NAME
-  local h=""
   if [[ -n "${display_name:-}" ]]; then
-    h="$display_name"
-    print -r -- "$h"
-    return
+    print -r -- "$display_name"
+  else
+    print -r -- "${__chizuru_hostname_cached:-${THEME_HOST_FALLBACK_NAME:-Chizuru}}"
   fi
-  h="$(hostname -s 2>/dev/null)"
-  [[ -z "$h" ]] && h="$(hostname 2>/dev/null)"
-  [[ -z "$h" ]] && h="${THEME_HOST_FALLBACK_NAME:-Chizuru}"
-  print -r -- "$h"
 }
 
 typeset -g ip_addr=""
@@ -190,13 +605,13 @@ typeset -g env_tag=""
 typeset -g env_prefix=""
 typeset -g container_line=""
 typeset -g time_str=""
-typeset -g hnode_count=0
+typeset -gi hnode_count=0
 typeset -g __ip_addr_last=""
 typeset -g __ip6_addr_last=""
 typeset -g __host_tag_last=""
 typeset -g __env_tag_last=""
 typeset -g __time_str_last=""
-typeset -g __hnode_count_last=0
+typeset -gi __hnode_count_last=0
 
 # ---------------------------
 # Directory jump history (in-memory)
@@ -210,114 +625,142 @@ typeset -g __cd_last_pwd=""
 
 __cd_history_push() {
   local old="$1"
-  [[ -z "$old" ]] && return
+  [[ -n "$old" ]] || return 0
   # ignore duplicates at tail
   if (( ${#__cd_history[@]} > 0 )) && [[ "${__cd_history[-1]}" == "$old" ]]; then
-    return
+    return 0
   fi
   __cd_history+=("$old")
-  # trim to max 1000 (drop oldest)
+  # trim to max 1000 (drop oldest).  `shift <array>` works on every zsh;
+  # `arr[1]=()` does not.
   while (( ${#__cd_history[@]} > 1000 )); do
-    __cd_history[1]=()
+    shift __cd_history
   done
   hnode_count=${#__cd_history[@]}
+  return 0
 }
 
 __cd_history_truncate_from() {
   # remove entries from index..end (inclusive)
-  local idx="$1"
-  local n=${#__cd_history[@]}
+  local -i n=${#__cd_history[@]} idx
+  local raw="${1:-}"
+
   if (( n <= 0 )); then
     hnode_count=0
-    return
+    return 0
   fi
+  [[ -n "$raw" && "$raw" != *[^0-9]* ]] || return 1
+  idx=$raw
   if (( idx < 1 || idx > n )); then
     return 1
   fi
-  __cd_history[$idx,-1]=()
+
+  if (( idx == 1 )); then
+    __cd_history=()
+  else
+    __cd_history=("${(@)__cd_history[1,idx-1]}")
+  fi
   hnode_count=${#__cd_history[@]}
+  return 0
+}
+
+# GNU-only ls options are probed once instead of assumed.
+typeset -ga __chizuru_ls_opts
+__chizuru_detect_ls_opts() {
+  __chizuru_ls_opts=(-a)
+  command ls --color=auto -d . >/dev/null 2>&1 && \
+    __chizuru_ls_opts+=(--color=auto)
+  command ls --group-directories-first -d . >/dev/null 2>&1 && \
+    __chizuru_ls_opts+=(--group-directories-first)
+}
+__chizuru_detect_ls_opts
+
+__chizuru_list_dir() {
+  local target="$1"
+  print -r -- "$target"
+  print -r -- '---'
+  command ls "${__chizuru_ls_opts[@]}" -- "$target" 2>/dev/null
 }
 
 historys() {
-  local n=${#__cd_history[@]}
+  emulate -L zsh
+  setopt prompt_subst
+
+  local -i n=${#__cd_history[@]}
+  local -i i idx
+
   if (( n == 0 )); then
-    echo "no result"
+    print -r -- "no result"
     return 0
   fi
 
   if [[ -z "${1:-}" ]]; then
-    local i=1
-    for (( i=1; i<=n; i++ )); do
+    for (( i = 1; i <= n; i++ )); do
       # align index to 4 chars (fits 1000 max), and keep paths aligned
       printf "%4d: %s\n" "$i" "${__cd_history[i]}"
     done
     return 0
   fi
 
-  local idx="$1"
-  if ! [[ "$idx" =~ '^[0-9]+$' ]]; then
-    echo "Usage: historys [index]"
+  if [[ "$1" != <-> ]]; then
+    print -r -- "Usage: historys [index]"
     return 1
   fi
+  idx=$1
   if (( idx < 1 || idx > n )); then
-    echo "Index out of range (1..$n)"
+    print -r -- "Index out of range (1..$n)"
     return 1
   fi
 
   local target="${__cd_history[idx]}"
-  # cd first, then truncate idx..end
   builtin cd -- "$target" || return 1
-  if [ "$?" -ne '1' ]; then
-    echo "$target"
-    echo '---'
-    command ls --color=auto -a --group-directories-first "$target"
-  fi
+  __chizuru_list_dir "$target"
   __cd_history_truncate_from "$idx" >/dev/null
   zle && zle reset-prompt
+  return 0
 }
 
 back() {
-  local n=${#__cd_history[@]}
+  emulate -L zsh
+  setopt prompt_subst
+
+  local -i n=${#__cd_history[@]}
   if (( n == 0 )); then
-    echo "no result"
+    print -r -- "no result"
     return 0
   fi
+
   local target="${__cd_history[-1]}"
-  if [ "$?" -ne '1' ]; then
-    echo "$target"
-    echo '---'
-    command ls --color=auto -a --group-directories-first "$target"
-  fi
   builtin cd -- "$target" || return 1
+  __chizuru_list_dir "$target"
   __cd_history_truncate_from "$n" >/dev/null
   zle && zle reset-prompt
-}
-
-chpwd() {
-  # record previous dir (before this cd) if known
-  if [[ -n "${__cd_last_pwd:-}" && "${__cd_last_pwd}" != "$PWD" ]]; then
-    __cd_history_push "$__cd_last_pwd"
-  fi
-  __cd_last_pwd="$PWD"
-  zle && zle reset-prompt
+  return 0
 }
 
 # init last pwd
 __cd_last_pwd="$PWD"
 hnode_count=${#__cd_history[@]}
 
-__detect_container_line() {
-  # Priority:
-  # 1) Real container => [Container]
-  # 2) WSL (not in container) => [WSL1]/[WSL2]
-  # 3) else => empty
+# ---------------------------
+# Container / WSL detection
+#
+# This cannot change during the lifetime of a shell, so it is detected ONCE
+# (the original ran systemd-detect-virt + grep on every single prompt).
+# ---------------------------
+typeset -g __chizuru_container_tag=""
+typeset -gi __chizuru_container_probed=0
 
-  local detected=""
-  local is_container=0
-  local virt=""
+__chizuru_probe_container() {
+  (( __chizuru_container_probed )) && [[ "${1:-}" != "force" ]] && return 0
+  __chizuru_container_probed=1
+  __chizuru_container_tag=""
+
+  local -i is_container=0 is_wsl=0
+  local virt="" osrel="" wsl_ver=""
 
   if command -v systemd-detect-virt >/dev/null 2>&1; then
-    virt="$(systemd-detect-virt -c 2>/dev/null)"
+    virt="$(command systemd-detect-virt -c 2>/dev/null)"
     # On WSL it may return "wsl" => do NOT treat that as container
     if [[ -n "$virt" && "$virt" != "none" && "$virt" != "wsl" ]]; then
       is_container=1
@@ -328,87 +771,101 @@ __detect_container_line() {
     [[ -f "/.dockerenv" || -f "/run/.containerenv" ]] && is_container=1
   fi
 
-  if (( ! is_container )); then
-    if [[ -r /proc/1/cgroup ]] && grep -Eq '(docker|containerd|kubepods|libpod|lxc)' /proc/1/cgroup 2>/dev/null; then
-      is_container=1
-    fi
+  if (( ! is_container )) && [[ -r /proc/1/cgroup ]]; then
+    local cg=""
+    cg="$(<"/proc/1/cgroup")"
+    case "$cg" in
+      *docker*|*containerd*|*kubepods*|*libpod*|*lxc*) is_container=1 ;;
+    esac
   fi
 
   if (( is_container )); then
-    detected="%F{#75C8FF}[Container]%f"$'\n'
-  else
-    local is_wsl=0
-    local wsl_ver=""
-    local osrel=""
+    __chizuru_container_tag="[Container]"
+    return 0
+  fi
 
-    if [[ -n "$WSL_INTEROP" || -n "$WSL_DISTRO_NAME" || -n "$WSLENV" ]]; then
-      is_wsl=1
-    fi
+  if [[ -n "${WSL_INTEROP:-}" || -n "${WSL_DISTRO_NAME:-}" || -n "${WSLENV:-}" ]]; then
+    is_wsl=1
+  fi
 
-    osrel="$(cat /proc/sys/kernel/osrelease 2>/dev/null)"
-    [[ -z "$osrel" ]] && osrel="$(uname -r 2>/dev/null)"
+  if [[ -r /proc/sys/kernel/osrelease ]]; then
+    osrel="$(<"/proc/sys/kernel/osrelease")"
+  fi
+  if [[ -z "$osrel" ]] && command -v uname >/dev/null 2>&1; then
+    osrel="$(command uname -r 2>/dev/null)"
+  fi
 
-    if (( ! is_wsl )); then
-      echo "$osrel" | grep -qi microsoft && is_wsl=1
-      if (( ! is_wsl )); then
-        grep -qi microsoft /proc/version 2>/dev/null && is_wsl=1
-      fi
-    fi
-
-    if (( is_wsl )); then
-      # WSL2: WSL_INTEROP present OR osrelease matches common WSL2 patterns
-      if [[ -n "$WSL_INTEROP" ]] || echo "$osrel" | grep -qiE '(wsl2|microsoft-standard)'; then
-        wsl_ver="Windows Subsystem Linux Ver.2"
-      else
-        wsl_ver="Windows Subsystem Linux Ver.1"
-      fi
-      detected="%F{#75C8FF}[${wsl_ver}]%f"$'\n'
-    else
-      detected=""
+  if (( ! is_wsl )); then
+    [[ "${(L)osrel}" == *microsoft* ]] && is_wsl=1
+    if (( ! is_wsl )) && [[ -r /proc/version ]]; then
+      local pv=""
+      pv="$(<"/proc/version")"
+      [[ "${(L)pv}" == *microsoft* ]] && is_wsl=1
     fi
   fi
 
-  if [[ "${CHIZURU_SHOW_CONTAINER:-1}" == "1" ]]; then
-    container_line="$detected"
+  if (( is_wsl )); then
+    if [[ -n "${WSL_INTEROP:-}" || "${(L)osrel}" == *wsl2* || "${(L)osrel}" == *microsoft-standard* ]]; then
+      wsl_ver="Windows Subsystem Linux Ver.2"
+    else
+      wsl_ver="Windows Subsystem Linux Ver.1"
+    fi
+    __chizuru_container_tag="[${wsl_ver}]"
+  fi
+
+  return 0
+}
+__chizuru_probe_container
+
+__detect_container_line() {
+  __chizuru_probe_container
+  if [[ "${CHIZURU_SHOW_CONTAINER:-1}" == "1" && -n "$__chizuru_container_tag" ]]; then
+    container_line="${CZ_C_INFO}${__chizuru_container_tag}${CZ_C_RESET}"$'\n'
   else
     container_line=""
   fi
 }
 
-# ---------------------------
-# Prompt variable refresh model
+# ===========================================================================
+# 4. Prompt variable refresh model
 #
-# Static / event-driven:
-#   - container / WSL tag
-#   - hostname / display_name
-#   - venv / conda tag
-#   - hnode count
-#
-# Dynamic / realtime:
-#   - IPv4 / IPv6 addresses
-#   - clock
+# Static / event-driven : container tag, hostname, venv/conda tag, hnode count
+# Dynamic / realtime    : IPv4 / IPv6 addresses, clock
 #
 # The realtime path intentionally NEVER refreshes the static values.
-# ---------------------------
+# ===========================================================================
 
 __refresh_prompt_static_vars() {
+  emulate -L zsh
+  setopt prompt_subst
+
   __detect_container_line
 
-  local now_host="$(__prompt_host_tag)"
-  local now_env="$(__prompt_env_tag)"
+  # inlined (the $(...) form used by the original cost two forks per prompt)
+  if [[ -n "${display_name:-}" ]]; then
+    host_tag="$display_name"
+  else
+    host_tag="${__chizuru_hostname_cached:-${THEME_HOST_FALLBACK_NAME:-Chizuru}}"
+  fi
 
-  host_tag="$now_host"
-  env_tag="$now_env"
+  if [[ -n "${CONDA_DEFAULT_ENV:-}" ]]; then
+    env_tag="$CONDA_DEFAULT_ENV"
+  elif [[ -n "${VIRTUAL_ENV:-}" ]]; then
+    env_tag="${VIRTUAL_ENV:t}"
+  else
+    env_tag=""
+  fi
 
   if [[ -n "$env_tag" ]]; then
     # reddish-orange for venv/conda tag (including brackets)
     # IMPORTANT: restore green after env tag so host/hnode stays green
-    env_prefix="%F{#FF8A3D}[${env_tag}]%f%F{green}"
+    env_prefix="${CZ_C_ACCENT}[${env_tag}]${CZ_C_RESET}${CZ_C_GREEN}"
   else
     env_prefix=""
   fi
 
   hnode_count=${#__cd_history[@]}
+  return 0
 }
 
 # Build the whole IP block (including its trailing newline) as one string.
@@ -417,25 +874,40 @@ __refresh_prompt_static_vars() {
 # prompt substitution is NOT recursive: ${ip_render} is expanded once, so the
 # text it yields may contain %F{...} prompt escapes but not further ${...}.
 __render_ip_lines() {
+  emulate -L zsh
+  setopt prompt_subst
+
   if [[ "${CHIZURU_SHOW_IP:-1}" != "1" ]]; then
     ip_render=""
-    return
+    return 0
   fi
 
   local out=""
 
   if [[ "${CHIZURU_SHOW_IPV6:-0}" == "1" ]]; then
-    out+="%F{yellow}[IPv4: ${ip_addr}]%f"$'\n'
+    out+="${CZ_C_YELLOW}[IPv4: ${ip_addr}]${CZ_C_RESET}"$'\n'
     # hide the v6 line entirely when the host has no global IPv6
-    [[ -n "$ip6_addr" ]] && out+="%F{yellow}[IPv6: ${ip6_addr}]%f"$'\n'
+    [[ -n "$ip6_addr" ]] && out+="${CZ_C_YELLOW}[IPv6: ${ip6_addr}]${CZ_C_RESET}"$'\n'
   else
-    out+="%F{yellow}[IP: ${ip_addr}]%f"$'\n'
+    out+="${CZ_C_YELLOW}[IP: ${ip_addr}]${CZ_C_RESET}"$'\n'
   fi
 
   ip_render="$out"
+  return 0
+}
+
+__chizuru_now() {
+  if (( __chizuru_have_datetime )); then
+    strftime -s time_str '%H:%M:%S' $EPOCHSECONDS 2>/dev/null && return 0
+  fi
+  time_str="$(command date +%H:%M:%S 2>/dev/null)"
+  return 0
 }
 
 __refresh_prompt_dynamic_vars() {
+  emulate -L zsh
+  setopt prompt_subst
+
   local allow_virtual="${CHIZURU_SHOW_VIRTUAL_NIC:-0}"
   local fallback="${CHIZURU_NIC_FALLBACK_ANY:-1}"
 
@@ -446,11 +918,6 @@ __refresh_prompt_dynamic_vars() {
   if [[ -z "$ip_addr" && "$allow_virtual" != "1" && "$fallback" == "1" ]]; then
     __prompt_collect_ip 4 1
     ip_addr="$__prompt_ip_result"
-  fi
-
-  # last resort (kept from the original implementation)
-  if [[ -z "$ip_addr" ]]; then
-    ip_addr="$(command ifconfig ens160 2>/dev/null | command grep -o '[0-9]\+\(\.[0-9]\+\)\{3\}' | command head -1)"
   fi
 
   # ---- IPv6 ----
@@ -466,13 +933,12 @@ __refresh_prompt_dynamic_vars() {
     ip6_addr=""
   fi
 
-  time_str="$(date +%H:%M:%S 2>/dev/null)"
-
+  __chizuru_now
   __render_ip_lines
+  return 0
 }
 
 # Full refresh is used at normal prompt lifecycle boundaries.
-# This is safe because precmd runs before ZLE starts editing the next command line.
 __refresh_prompt_vars() {
   __refresh_prompt_static_vars
   __refresh_prompt_dynamic_vars
@@ -486,54 +952,29 @@ __env_tag_last="$env_tag"
 __time_str_last="$time_str"
 __hnode_count_last=$hnode_count
 
-# --- REALTIME IP + CLOCK (ZLE fd-event driven) ---
+# ===========================================================================
+# 5. REALTIME IP + CLOCK
 #
-# Realtime values:
-#   - IPv4 / IPv6 addresses
-#   - clock
+# Preferred engine (zsh >= 4.3.4 with zsh/zpty):
+#   A tiny background zpty ticker writes one line per second.  ZLE watches
+#   the ticker's file descriptor with `zle -F`.  The handler runs from ZLE's
+#   own input-wait loop, refreshes ONLY IP/time, then calls reset-prompt.
 #
-# Event-driven/static values:
-#   - container / WSL tag
-#   - hostname / display_name
-#   - venv / conda tag
-#   - hnode count
+# Fallback engine (opt-in, CHIZURU_REALTIME_FALLBACK=1):
+#   classic TMOUT + TRAPALRM, for builds without zsh/zpty.
 #
-# Architecture:
-#   A tiny background zpty ticker writes one line per second.
-#   ZLE monitors the ticker's file descriptor with `zle -F`.
-#   The fd handler runs from ZLE's own input-wait loop, refreshes ONLY
-#   IP/time, then calls `reset-prompt`.
-#
-# This deliberately avoids BOTH older realtime mechanisms:
-#   1) TMOUT -> SIGALRM -> TRAPALRM -> reset-prompt
-#   2) zsh/sched -o -> clear/redraw the whole multi-line prompt every second
-#
+# Last resort: no ticker at all; values still refresh at every precmd.
+# ===========================================================================
 
 typeset -g  __chizuru_timer_name="chizuru_realtime_timer"
 typeset -gi __chizuru_timer_fd=-1
+typeset -g  __chizuru_realtime_engine="none"
 
-# zle <widget> -f nolast is available starting with zsh 5.9.
+# `zle <widget> -f nolast` is available starting with zsh 5.9.
 # Older zsh versions need a conservative redraw policy because their
 # reset-prompt changes LASTWIDGET and can break repeated history widgets.
 typeset -gi __chizuru_zle_nolast_supported=0
-
-__chizuru_detect_zle_nolast_support() {
-  local ver="${ZSH_VERSION%%-*}"
-  local -a parts
-  local major=0 minor=0
-
-  parts=("${(@s:.:)ver}")
-  major="${parts[1]:-0}"
-  minor="${parts[2]:-0}"
-
-  if (( major > 5 || (major == 5 && minor >= 9) )); then
-    __chizuru_zle_nolast_supported=1
-  else
-    __chizuru_zle_nolast_supported=0
-  fi
-}
-
-__chizuru_detect_zle_nolast_support
+__chizuru_zsh_at_least 5 9 && __chizuru_zle_nolast_supported=1
 
 # ---- compatibility cleanup for older Chizuru realtime engines ----
 
@@ -545,21 +986,20 @@ unfunction TRAPALRM 2>/dev/null
 zle -D __chizuru_realtime_refresh_widget 2>/dev/null
 
 # v2026.08.11.2: remove any already queued sched events.
-# Loading zsh/sched only for cleanup is harmless; no new sched events are used.
 __chizuru_cleanup_old_sched_events() {
-  zmodload -F zsh/sched b:sched 2>/dev/null || return 0
+  zmodload -F zsh/sched b:sched 2>/dev/null || zmodload zsh/sched 2>/dev/null || return 0
 
-  local i
-  for (( i=${#zsh_scheduled_events}; i>=1; i-- )); do
+  local -i i
+  for (( i = ${#zsh_scheduled_events}; i >= 1; i-- )); do
     if [[ "${zsh_scheduled_events[i]}" == *"__chizuru_"* ]]; then
       sched -$i 2>/dev/null
     fi
   done
+  return 0
 }
 __chizuru_cleanup_old_sched_events
 
-
-# ---- current fd-driven realtime engine ----
+# ---- engine control ----
 
 __chizuru_stop_realtime_timer() {
   # Remove the ZLE fd handler first so ZLE can no longer dispatch it.
@@ -568,18 +1008,48 @@ __chizuru_stop_realtime_timer() {
   fi
 
   # zpty -d sends HUP to the ticker process and releases the pty.
-  if zmodload -F zsh/zpty b:zpty 2>/dev/null; then
+  if zmodload -F zsh/zpty b:zpty 2>/dev/null || zmodload zsh/zpty 2>/dev/null; then
     zpty -d "$__chizuru_timer_name" 2>/dev/null
   fi
 
+  if [[ "$__chizuru_realtime_engine" == "alrm" ]]; then
+    TMOUT=0
+    unfunction TRAPALRM 2>/dev/null
+  fi
+
   __chizuru_timer_fd=-1
+  __chizuru_realtime_engine="none"
+  return 0
+}
+
+__chizuru_realtime_redraw() {
+  # We are NOT inside a user key widget here.
+  #
+  # zsh >= 5.9:
+  #   Use `-f nolast`.  This prevents reset-prompt from replacing LASTWIDGET,
+  #   so repeated history, kill/yank and other stateful widgets keep their
+  #   continuity.
+  #
+  # zsh <= 5.8.x:
+  #   `-f nolast` does not exist and LASTWIDGET is read-only, so redraw ONLY
+  #   when the edit buffer is empty and history is not being browsed.  The
+  #   IP/time variables are still sampled every second; the visible prompt
+  #   simply freezes while the user types.  The next idle tick or precmd
+  #   shows the newest values.
+  if (( __chizuru_zle_nolast_supported )); then
+    zle reset-prompt -f nolast
+  else
+    if [[ -z "${BUFFER:-}" ]] && (( ${HISTNO:-0} == ${HISTCMD:-0} )); then
+      zle reset-prompt
+    fi
+  fi
 }
 
 __chizuru_realtime_fd_handler() {
   local fd="$1"
-  local err="${2:-}"
+  local err="${2:-}"           # 2nd arg only exists on newer zsh
   local tick=""
-  local got_tick=0
+  local -i got_tick=0
 
   # poll/select reported an invalid/closed descriptor.
   if [[ -n "$err" ]]; then
@@ -590,9 +1060,6 @@ __chizuru_realtime_fd_handler() {
 
   # Drain all currently queued timer lines.  This is important after a long
   # foreground command: we want ONE prompt refresh, not a burst of old ticks.
-  #
-  # `zpty -r -t` is non-blocking here.  With a parameter argument it consumes
-  # at most one available line per iteration.
   while zpty -r -t "$__chizuru_timer_name" tick 2>/dev/null; do
     got_tick=1
   done
@@ -605,74 +1072,100 @@ __chizuru_realtime_fd_handler() {
   __ip6_addr_last="$ip6_addr"
   __time_str_last="$time_str"
 
-  # We are already being called from ZLE's fd event loop, not from a signal
-  # trap and not from a user key widget.
+  __chizuru_realtime_redraw
+  return 0
+}
+
+__chizuru_start_zpty_timer() {
+  # zle -F on an arbitrary fd needs zsh >= 4.3.4
+  __chizuru_zsh_at_least 4 3 4 || return 1
+
+  zmodload -F zsh/zpty b:zpty 2>/dev/null || zmodload zsh/zpty 2>/dev/null || return 1
+  command -v sleep >/dev/null 2>&1 || return 1
+
+  # -b makes the pty non-blocking and publishes the master fd in $REPLY.
   #
-  # zsh >= 5.9:
-  #   Use `-f nolast`.  This is the correct full-realtime path because it
-  #   prevents reset-prompt from replacing LASTWIDGET, so repeated history,
-  #   kill/yank and other stateful widgets keep their continuity.
-  #
-  # zsh <= 5.8.x:
-  #   `-f nolast` does not exist, and reset-prompt itself changes LASTWIDGET.
-  #   There is no writable LASTWIDGET fallback (LASTWIDGET is read-only).
-  #   Therefore redraw ONLY when the current edit buffer is empty/current.
-  #   IP/time variables are still sampled every second, but the visible prompt
-  #   intentionally freezes while the user is typing or browsing history.
-  #   The next safe idle tick or normal precmd shows the newest values.
-  if (( __chizuru_zle_nolast_supported )); then
-    zle reset-prompt -f nolast
-  else
-    if [[ -z "${BUFFER:-}" ]] && (( ${HISTNO:-0} == ${HISTCMD:-0} )); then
-      zle reset-prompt
-    fi
+  # No terminal output from this ticker reaches the user's screen: its stdout
+  # goes only to the private pty read by the ZLE fd handler.
+  REPLY=""
+  zpty -b "$__chizuru_timer_name" \
+      'while :; do command sleep 1 || exit 0; print -r -- tick; done' 2>/dev/null || return 1
+
+  # Very old / unusual builds may not publish the fd.  Bail out cleanly.
+  if [[ -z "$REPLY" || "$REPLY" == *[^0-9]* ]]; then
+    zpty -d "$__chizuru_timer_name" 2>/dev/null
+    return 1
   fi
+  __chizuru_timer_fd=$REPLY
+
+  # IMPORTANT:
+  # This is a NORMAL fd handler, not `zle -F -w`.  The callback is therefore
+  # not a ZLE widget and does not replace the user's widget state.
+  if ! zle -F "$__chizuru_timer_fd" __chizuru_realtime_fd_handler 2>/dev/null; then
+    zpty -d "$__chizuru_timer_name" 2>/dev/null
+    __chizuru_timer_fd=-1
+    return 1
+  fi
+
+  return 0
+}
+
+__chizuru_start_alrm_timer() {
+  # Universal fallback: works on literally every zsh, but owns TMOUT/SIGALRM.
+  TRAPALRM() {
+    __refresh_prompt_dynamic_vars
+    __ip_addr_last="$ip_addr"
+    __ip6_addr_last="$ip6_addr"
+    __time_str_last="$time_str"
+    if zle; then
+      if [[ -z "${BUFFER:-}" ]] && (( ${HISTNO:-0} == ${HISTCMD:-0} )); then
+        zle reset-prompt
+      fi
+    fi
+  }
+  TMOUT=1
+  return 0
 }
 
 __chizuru_start_realtime_timer() {
   [[ -o interactive ]] || return 0
+  [[ "${CHIZURU_REALTIME:-1}" == "1" ]] || return 0
 
-  # zpty provides a dedicated pty + readable fd without consuming zsh's single
-  # coprocess channel.  Its master fd can be monitored directly by `zle -F`.
-  if ! zmodload -F zsh/zpty b:zpty 2>/dev/null; then
-    return 0
-  fi
-
-  # If ~/.zshrc/theme is sourced again, kill the previous ticker first.
+  # If ~/.zshrc / the theme is sourced again, kill the previous ticker first.
   __chizuru_stop_realtime_timer
 
-  # -b makes the pty non-blocking.
-  #
-  # No terminal output from this ticker reaches the user's screen: its stdout
-  # goes only to the private pty read by the ZLE fd handler.
-  if ! zpty -b "$__chizuru_timer_name" \
-      'while :; do command sleep 1 || exit 0; print -r -- tick; done'
-  then
+  if __chizuru_start_zpty_timer; then
+    __chizuru_realtime_engine="zpty"
     return 0
   fi
 
-  __chizuru_timer_fd=$REPLY
+  if [[ "${CHIZURU_REALTIME_FALLBACK:-0}" == "1" ]] && __chizuru_start_alrm_timer; then
+    __chizuru_realtime_engine="alrm"
+    return 0
+  fi
 
-  # IMPORTANT:
-  # This is a NORMAL fd handler, not `zle -F -w`.
-  # Therefore the timer callback is not itself a ZLE widget and does not
-  # replace the user's history-navigation widget state.
-  zle -F "$__chizuru_timer_fd" __chizuru_realtime_fd_handler
+  __chizuru_realtime_engine="none"
+  return 0
 }
 
 __chizuru_start_realtime_timer
 
-configure_prompt() {
-    if [ "`whoami`" = "root" ];then
-        use_color="%F{red}"
-    else
-        use_color="%F{green}"
-    fi
+# ===========================================================================
+# 6. Prompt assembly
+# ===========================================================================
 
-    yellow_c="%F{yellow}"
-    cyan_c="%F{cyan}"
-    write_c="%F{white}"
-    green_c="%F{green}"
+configure_prompt() {
+    emulate -L zsh
+    setopt prompt_subst
+
+    # %(#.A.B) is resolved at prompt time, so `su` inside the same shell
+    # recolors immediately and no `whoami` fork is needed.
+    use_color="${CZ_C_USER}"
+
+    yellow_c="${CZ_C_YELLOW}"
+    cyan_c="${CZ_C_CYAN}"
+    write_c="${CZ_C_WHITE}"
+    green_c="${CZ_C_GREEN}"
     cp_fn
 
     # IMPORTANT:
@@ -685,8 +1178,8 @@ configure_prompt() {
       host_part=''
     fi
 
-    local hnode_part='%F{#FF8A3D}[hnode: ${hnode_count}]%f'
-    local time_part='%F{#C205E9}[${time_str}]%f'
+    local hnode_part='${CZ_C_ACCENT}[hnode: ${hnode_count}]${CZ_C_RESET}'
+    local time_part='${CZ_C_TIME}[${time_str}]${CZ_C_RESET}'
 
     # The IP block (IPv4 only / IPv4 + IPv6, incl. its trailing newline) is
     # pre-rendered by __render_ip_lines and already honours CHIZURU_SHOW_IP.
@@ -697,17 +1190,22 @@ configure_prompt() {
 
 NEWLINE_BEFORE_PROMPT=yes
 
-# ---------------------------
-# Theme self-update (check EVERY login; no-network => ignore)
+# ===========================================================================
+# 7. Theme self-update (check EVERY login; no-network => ignore)
 # - Compare numeric dotted versions properly (e.g. 2026.01.15.10 > 2026.01.15.2)
 # - Strong guardrails against bad remote content / human mistakes
-# ---------------------------
+# - curl is preferred, wget is accepted, neither => update support disabled
+# ===========================================================================
 
 typeset -g __THEME_UPDATE_RELOADING="${__THEME_UPDATE_RELOADING:-0}"
 
 __theme_version_is_valid() {
   # Accept only dotted numeric versions: 1.2.3 / 2026.01.15.1 etc.
-  [[ "$1" =~ '^[0-9]+(\.[0-9]+)*$' ]]
+  local v="${1:-}"
+  [[ -n "$v" ]] || return 1
+  [[ "$v" == *[^0-9.]* ]] && return 1
+  [[ "$v" == .* || "$v" == *. || "$v" == *..* ]] && return 1
+  return 0
 }
 
 __theme_version_cmp() {
@@ -717,19 +1215,17 @@ __theme_version_cmp() {
   # 255 => a < b  (use 255 to represent -1)
   local a="$1" b="$2"
   local -a A B
-  local i max
+  local ai bi
+  local -i i max
 
   A=("${(@s:.:)a}")
   B=("${(@s:.:)b}")
 
   (( ${#A} > ${#B} )) && max=${#A} || max=${#B}
 
-  for (( i=1; i<=max; i++ )); do
-    local ai="${A[i]:-0}"
-    local bi="${B[i]:-0}"
-
-    ai="${ai##0}"; [[ -z "$ai" ]] && ai=0
-    bi="${bi##0}"; [[ -z "$bi" ]] && bi=0
+  for (( i = 1; i <= max; i++ )); do
+    ai="${A[i]:-0}"; [[ -n "$ai" ]] || ai=0
+    bi="${B[i]:-0}"; [[ -n "$bi" ]] || bi=0
 
     if (( 10#$ai > 10#$bi )); then
       return 1
@@ -740,24 +1236,84 @@ __theme_version_cmp() {
   return 0
 }
 
+__chizuru_have_downloader() {
+  command -v curl >/dev/null 2>&1 && return 0
+  command -v wget >/dev/null 2>&1 && return 0
+  return 1
+}
+
+# __chizuru_fetch URL [OUTFILE] [TIMEOUT]
+__chizuru_fetch() {
+  local url="$1" out="${2:-}" tmo="${3:-10}"
+
+  if command -v curl >/dev/null 2>&1; then
+    if [[ -n "$out" ]]; then
+      command curl -fsSL --max-time "$tmo" "$url" -o "$out"
+    else
+      command curl -fsSL --max-time "$tmo" "$url"
+    fi
+    return $?
+  fi
+
+  if command -v wget >/dev/null 2>&1; then
+    if [[ -n "$out" ]]; then
+      command wget -q -T "$tmo" -O "$out" "$url"
+    else
+      command wget -q -T "$tmo" -O - "$url"
+    fi
+    return $?
+  fi
+
+  return 127
+}
+
+# Parse THEME_VERSION out of theme text without awk/grep.
+# Sets $REPLY to the version, returns 1 when the text is not our theme.
+__theme_scan_content() {
+  local content="$1"
+  local -a lines
+  local l v=""
+  local -i has_url=0 has_ver=0
+
+  REPLY=""
+  lines=("${(@f)content}")
+
+  for l in "${lines[@]}"; do
+    [[ "$l" == THEME_GITHUB_RAW_URL=* ]] && has_url=1
+    if [[ "$l" == THEME_VERSION=* ]]; then
+      has_ver=1
+      if [[ -z "$v" ]]; then
+        v="${l#THEME_VERSION=}"
+        v="${v#\"}"
+        v="${v%%\"*}"
+      fi
+    fi
+  done
+
+  (( has_url && has_ver )) || return 1
+  [[ -n "$v" ]] || return 1
+  REPLY="$v"
+  return 0
+}
+
 __theme_get_remote_version() {
-  command -v curl >/dev/null 2>&1 || return 1
+  __chizuru_have_downloader || return 1
 
   local content
-  content="$(curl -fsSL --max-time 2 "$THEME_GITHUB_RAW_URL" 2>/dev/null)" || return 1
+  content="$(__chizuru_fetch "$THEME_GITHUB_RAW_URL" "" 2)" || return 1
+  [[ -n "$content" ]] || return 1
 
   # Sanity checks: remote must look like our theme (avoid HTML/404/other file)
-  echo "$content" | grep -q '^THEME_VERSION=' || return 1
-  echo "$content" | grep -q '^THEME_GITHUB_RAW_URL=' || return 1
-
-  local v
-  v="$(echo "$content" | head -n 80 | awk -F'"' '/^THEME_VERSION=/{print $2; exit}')" || return 1
-  [[ -n "$v" ]] || return 1
-  print -r -- "$v"
+  __theme_scan_content "$content" || return 1
+  print -r -- "$REPLY"
+  return 0
 }
 
 theme-update() {
-  command -v curl >/dev/null 2>&1 || { echo "curl not found"; return 1; }
+  emulate -L zsh
+  setopt prompt_subst
+
+  __chizuru_have_downloader || { print -r -- "curl/wget not found"; return 1 }
 
   local self_file="${THEME_SELF_FILE:-}"
 
@@ -770,57 +1326,63 @@ theme-update() {
     [[ -n "$self_file" ]] && self_file="${self_file:A}"
   fi
 
-  [[ -z "$self_file" || ! -w "$self_file" ]] && { echo "Cannot write theme file: $self_file"; return 1; }
+  if [[ -z "$self_file" || ! -w "$self_file" ]]; then
+    print -r -- "Cannot write theme file: $self_file"
+    return 1
+  fi
 
   local tmp="${self_file}.tmp.$$"
-  if ! curl -fsSL --max-time 10 "$THEME_GITHUB_RAW_URL" -o "$tmp"; then
-    echo "Download failed"
-    rm -f "$tmp" 2>/dev/null
+  if ! __chizuru_fetch "$THEME_GITHUB_RAW_URL" "$tmp" 10; then
+    print -r -- "Download failed"
+    command rm -f "$tmp" 2>/dev/null
     return 1
   fi
 
-  # Guardrails: downloaded file must include these key lines
-  if ! grep -q '^THEME_VERSION=' "$tmp" 2>/dev/null; then
-    echo "Downloaded file looks invalid (missing THEME_VERSION=). Abort."
-    rm -f "$tmp" 2>/dev/null
+  # Guardrails: downloaded file must include our key lines
+  local content=""
+  content="$(<"$tmp")" 2>/dev/null
+  if ! __theme_scan_content "$content"; then
+    print -r -- "Downloaded file looks invalid (missing THEME_VERSION= / THEME_GITHUB_RAW_URL=). Abort."
+    command rm -f "$tmp" 2>/dev/null
     return 1
   fi
-  if ! grep -q '^THEME_GITHUB_RAW_URL=' "$tmp" 2>/dev/null; then
-    echo "Downloaded file looks invalid (missing THEME_GITHUB_RAW_URL=). Abort."
-    rm -f "$tmp" 2>/dev/null
-    return 1
-  fi
-
-  local remote_ver
-  remote_ver="$(awk -F'"' '/^THEME_VERSION=/{print $2; exit}' "$tmp" 2>/dev/null)"
+  local remote_ver="$REPLY"
 
   if ! __theme_version_is_valid "$remote_ver"; then
-    echo "Remote THEME_VERSION is invalid: '$remote_ver'. Abort."
-    rm -f "$tmp" 2>/dev/null
+    print -r -- "Remote THEME_VERSION is invalid: '$remote_ver'. Abort."
+    command rm -f "$tmp" 2>/dev/null
     return 1
   fi
   if ! __theme_version_is_valid "$THEME_VERSION"; then
-    echo "Local THEME_VERSION is invalid: '$THEME_VERSION'. Abort."
-    rm -f "$tmp" 2>/dev/null
+    print -r -- "Local THEME_VERSION is invalid: '$THEME_VERSION'. Abort."
+    command rm -f "$tmp" 2>/dev/null
     return 1
   fi
 
   __theme_version_cmp "$remote_ver" "$THEME_VERSION"
-  local cmp_rc=$?
+  local -i cmp_rc=$?
 
-  if [[ $cmp_rc -eq 0 ]]; then
-    echo "Already up to date."
-    rm -f "$tmp" 2>/dev/null
+  if (( cmp_rc == 0 )); then
+    print -r -- "Already up to date."
+    command rm -f "$tmp" 2>/dev/null
     return 0
-  elif [[ $cmp_rc -eq 255 ]]; then
-    echo "Remote version ($remote_ver) is older than local ($THEME_VERSION). Abort (no downgrade)."
-    rm -f "$tmp" 2>/dev/null
+  elif (( cmp_rc == 255 )); then
+    print -r -- "Remote version ($remote_ver) is older than local ($THEME_VERSION). Abort (no downgrade)."
+    command rm -f "$tmp" 2>/dev/null
     return 1
   fi
 
-  cp -a "$self_file" "${self_file}.bak.$(date +%Y%m%d%H%M%S)" 2>/dev/null
-  mv -f "$tmp" "$self_file"
-  echo "Theme updated to $remote_ver."
+  local stamp=""
+  if (( __chizuru_have_datetime )); then
+    strftime -s stamp '%Y%m%d%H%M%S' $EPOCHSECONDS 2>/dev/null
+  fi
+  [[ -n "$stamp" ]] || stamp="$(command date +%Y%m%d%H%M%S 2>/dev/null)"
+  [[ -n "$stamp" ]] || stamp="$$"
+
+  command cp -p "$self_file" "${self_file}.bak.${stamp}" 2>/dev/null || \
+    command cp "$self_file" "${self_file}.bak.${stamp}" 2>/dev/null
+  command mv -f "$tmp" "$self_file" || { print -r -- "Install failed"; return 1 }
+  print -r -- "Theme updated to $remote_ver."
 
   # Auto-apply changes
   local zrc="${ZDOTDIR:-$HOME}/.zshrc"
@@ -833,11 +1395,14 @@ theme-update() {
   __THEME_UPDATE_RELOADING=0
 
   zle && zle reset-prompt
+  return 0
 }
 
 __theme_check_update_on_login() {
   [[ -o interactive ]] || return 0
   [[ "${__THEME_UPDATE_RELOADING:-0}" == "1" ]] && return 0
+  [[ "${CHIZURU_AUTO_UPDATE_CHECK:-1}" == "1" ]] || return 0
+  __chizuru_have_downloader || return 0
 
   if ! __theme_version_is_valid "$THEME_VERSION"; then
     print -P "%F{red}[Theme]%f Local THEME_VERSION invalid: %F{yellow}${THEME_VERSION}%f. Skip update check."
@@ -854,14 +1419,10 @@ __theme_check_update_on_login() {
   fi
 
   __theme_version_cmp "$remote_ver" "$THEME_VERSION"
-  local cmp_rc=$?
+  local -i cmp_rc=$?
 
-  if [[ $cmp_rc -eq 0 ]]; then
-    return 0
-  elif [[ $cmp_rc -eq 255 ]]; then
-    # remote < local => do nothing (avoid accidental downgrade)
-    return 0
-  fi
+  # equal, or remote older (never auto-downgrade) => nothing to do
+  (( cmp_rc == 0 || cmp_rc == 255 )) && return 0
 
   # remote > local => ask Y/N
   local ans=""
@@ -869,20 +1430,24 @@ __theme_check_update_on_login() {
   if read -r -k 1 ans </dev/tty 2>/dev/null; then
     print ""
   else
-    read -r ans
+    read -r ans 2>/dev/null || ans=""
   fi
 
-  if [[ -z "$ans" || "$ans" == [Yy] ]]; then
+  if [[ -z "$ans" || "$ans" == $'\n' || "$ans" == [Yy] ]]; then
     theme-update
   else
     print -P "%F{yellow}[Theme]%f Skipped."
   fi
+  return 0
 }
 
 # Manual update command
-chizuru-update() { theme-update "$@"; }
+chizuru-update() { theme-update "$@" }
 
-# Toggle commands (apply immediately)
+# ===========================================================================
+# 8. Toggle / diagnostic commands
+# ===========================================================================
+
 __chizuru_apply_toggle() {
   __refresh_prompt_dynamic_vars
   configure_prompt
@@ -907,37 +1472,201 @@ chizuru-disable-hostname() { CHIZURU_SHOW_HOSTNAME=0; configure_prompt; zle && z
 chizuru-show-container() { CHIZURU_SHOW_CONTAINER=1; __detect_container_line; configure_prompt; zle && zle reset-prompt }
 chizuru-disable-container() { CHIZURU_SHOW_CONTAINER=0; __detect_container_line; configure_prompt; zle && zle reset-prompt }
 
+# Realtime engine control
+chizuru-realtime-on() { CHIZURU_REALTIME=1; __chizuru_start_realtime_timer; __chizuru_apply_toggle }
+chizuru-realtime-off() { CHIZURU_REALTIME=0; __chizuru_stop_realtime_timer; __chizuru_apply_toggle }
+
+# Force a color mode: truecolor | 256 | basic | none
+chizuru-color-mode() {
+  if [[ -n "${1:-}" ]]; then
+    CHIZURU_COLOR_MODE="$1"
+  else
+    unset CHIZURU_COLOR_MODE
+  fi
+  __chizuru_build_colors
+  __refresh_prompt_static_vars
+  __refresh_prompt_dynamic_vars
+  configure_prompt
+  zle && zle reset-prompt
+  print -r -- "color mode: $__chizuru_color_mode (terminal reports ${__chizuru_term_colors} colors)"
+}
+
+# What did the compatibility layer actually pick on this machine?
+chizuru-info() {
+  emulate -L zsh
+  __chizuru_detect_ip_backend
+  print -r -- "theme            : ${THEME_NAME} ${THEME_VERSION}"
+  print -r -- "zsh              : ${ZSH_VERSION} (parsed ${__chizuru_v_major}.${__chizuru_v_minor}.${__chizuru_v_patch})"
+  print -r -- "color mode       : ${__chizuru_color_mode} (terminfo colors: ${__chizuru_term_colors}, TERM=${TERM:-unset})"
+  print -r -- "zle -f nolast    : $(( __chizuru_zle_nolast_supported )) (needs zsh >= 5.9)"
+  print -r -- "realtime engine  : ${__chizuru_realtime_engine} (fd=${__chizuru_timer_fd})"
+  print -r -- "clock source     : $(( __chizuru_have_datetime )) => zsh/datetime, else date(1)"
+  print -r -- "ip backend       : ${__chizuru_ip_backend}"
+  print -r -- "ls options       : ${__chizuru_ls_opts[*]}"
+  print -r -- "hostname         : ${__chizuru_hostname_cached}"
+  print -r -- "container/WSL    : ${__chizuru_container_tag:-(none)}"
+  print -r -- "IPv4             : ${ip_addr:-(none)}"
+  print -r -- "IPv6             : ${ip6_addr:-(none)}"
+}
+
 # Debug helper: show how each NIC is classified
 chizuru-nic-list() {
-  local -a lines fields
-  local line ifc state kind
+  emulate -L zsh
+  setopt no_nomatch
 
-  lines=("${(@f)$(command ip -br addr show 2>/dev/null)}")
-  for line in "${lines[@]}"; do
-    [[ -z "$line" ]] && continue
-    fields=(${=line})
-    ifc="${fields[1]%%@*}"
-    state="${fields[2]}"
+  __chizuru_detect_ip_backend
+
+  local -A addrmap
+  local -a ifs lines fields
+  local line ifc a kind state
+  local -i i
+
+  case "$__chizuru_ip_backend" in
+    ip-br)
+      lines=("${(@f)$(command ip -br addr show 2>/dev/null)}")
+      for line in "${lines[@]}"; do
+        [[ -n "$line" ]] || continue
+        fields=(${=line})
+        (( ${#fields} >= 2 )) || continue
+        ifc="${fields[1]%%@*}"
+        addrmap[$ifc]="${(j: :)fields[3,-1]}"
+      done
+      ;;
+    ip-o)
+      lines=("${(@f)$(command ip -o addr show 2>/dev/null)}")
+      for line in "${lines[@]}"; do
+        [[ -n "$line" ]] || continue
+        fields=(${=line})
+        (( ${#fields} >= 4 )) || continue
+        ifc="${fields[2]%%@*}"
+        for (( i = 3; i <= ${#fields}; i++ )); do
+          if [[ "${fields[i]}" == "inet" || "${fields[i]}" == "inet6" ]]; then
+            addrmap[$ifc]="${addrmap[$ifc]:+${addrmap[$ifc]} }${fields[i+1]}"
+            break
+          fi
+        done
+      done
+      ;;
+    ifconfig)
+      lines=("${(@f)$(command ifconfig -a 2>/dev/null)}")
+      ifc=""
+      for line in "${lines[@]}"; do
+        [[ -n "$line" ]] || continue
+        if [[ "$line" != [[:space:]]* ]]; then
+          fields=(${=line})
+          ifc="${fields[1]%%:*}"
+          continue
+        fi
+        [[ -n "$ifc" ]] || continue
+        fields=(${=line})
+        for (( i = 1; i <= ${#fields}; i++ )); do
+          if [[ "${fields[i]}" == "inet" || "${fields[i]}" == "inet6" ]]; then
+            a="${fields[i+1]#addr:}"
+            [[ "$a" == "addr:" ]] && a="${fields[i+2]:-}"
+            [[ -n "$a" ]] && addrmap[$ifc]="${addrmap[$ifc]:+${addrmap[$ifc]} }${a}"
+            break
+          fi
+        done
+      done
+      ;;
+  esac
+
+  if [[ -d /sys/class/net ]]; then
+    ifs=(/sys/class/net/*(N:t))
+  else
+    ifs=(${(k)addrmap})
+  fi
+
+  for ifc in "${(@)ifs}"; do
+    [[ -n "$ifc" ]] || continue
     if __prompt_nic_is_physical "$ifc"; then
       kind="physical"
     else
       kind="virtual "
     fi
-    printf "%-8s %-8s %-16s %s\n" "$kind" "$state" "$ifc" "${(j: :)fields[3,-1]}"
+    if [[ -r "/sys/class/net/$ifc/operstate" ]]; then
+      state="$(<"/sys/class/net/$ifc/operstate")"
+    else
+      state="?"
+    fi
+    printf "%-8s %-8s %-16s %s\n" "$kind" "$state" "$ifc" "${addrmap[$ifc]:-}"
   done
 }
-# ---------------------------
 
-if [ "$color_prompt" = yes ]; then
+# ===========================================================================
+# 9. Hook registration
+#
+# add-zsh-hook keeps other plugins' precmd/chpwd alive.  If it is missing
+# (very old or very stripped zsh), fall back to the plain function names.
+# ===========================================================================
+
+__chizuru_precmd() {
+    __refresh_prompt_vars
+    print -Pnr -- "${TERM_TITLE-}"
+    if [[ "${NEWLINE_BEFORE_PROMPT:-}" == yes ]]; then
+        if [[ -z "${_NEW_LINE_BEFORE_PROMPT:-}" ]]; then
+            _NEW_LINE_BEFORE_PROMPT=1
+        else
+            print ""
+        fi
+    fi
+}
+
+__chizuru_chpwd() {
+  # record previous dir (before this cd) if known
+  if [[ -n "${__cd_last_pwd:-}" && "${__cd_last_pwd}" != "$PWD" ]]; then
+    __cd_history_push "$__cd_last_pwd"
+  fi
+  __cd_last_pwd="$PWD"
+  zle && zle reset-prompt
+}
+
+typeset -gi __chizuru_have_hooks=0
+autoload -Uz add-zsh-hook 2>/dev/null
+if add-zsh-hook precmd __chizuru_precmd 2>/dev/null; then
+  add-zsh-hook chpwd __chizuru_chpwd 2>/dev/null
+  __chizuru_have_hooks=1
+else
+  precmd() { __chizuru_precmd "$@" }
+  chpwd()  { __chizuru_chpwd  "$@" }
+fi
+
+# ===========================================================================
+# 10. Prompt activation + syntax highlighting + aliases
+# ===========================================================================
+
+if [[ "$color_prompt" == yes ]]; then
     VIRTUAL_ENV_DISABLE_PROMPT=1
     configure_prompt
 
     # Check update every login (no network => silently ignore)
     __theme_check_update_on_login
 
-    if [ -f /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh ]; then
-        . /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+    typeset -ga __chizuru_zsh_syntax_candidates
+    __chizuru_zsh_syntax_candidates=(
+      /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+      /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+      /usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+      /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+      "${HOME}/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+    )
+
+    __chizuru_zsh_syntax_file=""
+    for __chizuru_zsh_syntax_c in "${__chizuru_zsh_syntax_candidates[@]}"; do
+      if [[ -r "$__chizuru_zsh_syntax_c" ]]; then
+        __chizuru_zsh_syntax_file="$__chizuru_zsh_syntax_c"
+        break
+      fi
+    done
+    unset __chizuru_zsh_syntax_c
+
+    if [[ -n "$__chizuru_zsh_syntax_file" ]]; then
+        . "$__chizuru_zsh_syntax_file"
+
         ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern)
+
+        # Older zsh-syntax-highlighting releases do not know every key below.
+        # Assigning an unknown key is harmless, so no version gate is needed.
         ZSH_HIGHLIGHT_STYLES[default]=none
         ZSH_HIGHLIGHT_STYLES[unknown-token]=fg=white,underline
         ZSH_HIGHLIGHT_STYLES[reserved-word]=fg=cyan,bold
@@ -980,42 +1709,51 @@ if [ "$color_prompt" = yes ]; then
         ZSH_HIGHLIGHT_STYLES[bracket-level-5]=fg=cyan,bold
         ZSH_HIGHLIGHT_STYLES[cursor-matchingbracket]=standout
     fi
+    unset __chizuru_zsh_syntax_file __chizuru_zsh_syntax_candidates
 else
     PROMPT='${debian_chroot:+($debian_chroot)}%n@%m:%~%(#.#.$) '
 fi
 unset color_prompt force_color_prompt
 
 case "$TERM" in
-xterm*|rxvt*|Eterm|aterm|kterm|gnome*|alacritty)
-    TERM_TITLE=$'\e]0;${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+($(basename $VIRTUAL_ENV))}%n@%m: %~\a'
+xterm*|rxvt*|Eterm|aterm|kterm|gnome*|alacritty*|konsole*|wezterm*|foot*|contour*|st-*|tmux*|screen*|vte*)
+    # ${VIRTUAL_ENV:t} avoids a basename fork on every prompt
+    TERM_TITLE=$'\e]0;${debian_chroot:+($debian_chroot)}${VIRTUAL_ENV:+(${VIRTUAL_ENV:t})}%n@%m: %~\a'
     ;;
 *)
+    TERM_TITLE=""
     ;;
 esac
 
-precmd() {
-    __refresh_prompt_vars
-    print -Pnr -- "$TERM_TITLE"
-    if [ "$NEWLINE_BEFORE_PROMPT" = yes ]; then
-        if [ -z "$_NEW_LINE_BEFORE_PROMPT" ]; then
-            _NEW_LINE_BEFORE_PROMPT=1
-        else
-            print ""
-        fi
-    fi
-}
-
-if [ -x /usr/bin/dircolors ]; then
-    test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
+# --- colorized coreutils: every option is probed before it is aliased ---
+if command -v dircolors >/dev/null 2>&1; then
+    test -r ~/.dircolors && eval "$(command dircolors -b ~/.dircolors)" || eval "$(command dircolors -b)"
     export LS_COLORS="$LS_COLORS:ow=30;44:"
 
-    alias ls='ls --color=auto'
-    alias grep='grep --color=auto'
-    alias fgrep='fgrep --color=auto'
-    alias egrep='egrep --color=auto'
-    alias diff='diff --color=auto'
-    alias ip='ip --color=auto'
+    zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+    zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
+fi
 
+if command ls --color=auto -d . >/dev/null 2>&1; then
+    alias ls='ls --color=auto'
+fi
+
+command grep --color=auto . /dev/null >/dev/null 2>&1
+if (( $? <= 1 )); then
+    alias grep='grep --color=auto'
+    command -v fgrep >/dev/null 2>&1 && alias fgrep='fgrep --color=auto'
+    command -v egrep >/dev/null 2>&1 && alias egrep='egrep --color=auto'
+fi
+
+if command diff --color=auto /dev/null /dev/null >/dev/null 2>&1; then
+    alias diff='diff --color=auto'
+fi
+
+if command -v ip >/dev/null 2>&1 && command ip --color=auto link show >/dev/null 2>&1; then
+    alias ip='ip --color=auto'
+fi
+
+if command -v less >/dev/null 2>&1; then
     export LESS_TERMCAP_mb=$'\E[1;31m'     # begin blink
     export LESS_TERMCAP_md=$'\E[1;36m'     # begin bold
     export LESS_TERMCAP_me=$'\E[0m'        # reset bold/blink
@@ -1023,7 +1761,4 @@ if [ -x /usr/bin/dircolors ]; then
     export LESS_TERMCAP_se=$'\E[0m'        # reset reverse video
     export LESS_TERMCAP_us=$'\E[1;32m'     # begin underline
     export LESS_TERMCAP_ue=$'\E[0m'        # reset underline
-
-    zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-    zstyle ':completion:*:*:kill:*:processes' list-colors '=(#b) #([0-9]#)*=0=01;31'
 fi
