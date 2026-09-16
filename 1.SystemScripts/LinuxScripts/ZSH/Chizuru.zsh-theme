@@ -32,7 +32,7 @@ if [[ "$(tty)" == "/dev/ttyS0" && "$TERM" == "vt220" ]]; then
 fi
 
 THEME_NAME="Chizuru"
-THEME_VERSION="2026.09.16.2"
+THEME_VERSION="2026.09.16.3"
 THEME_GITHUB_RAW_URL="https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme"
 THEME_HOST_FALLBACK_NAME="Chizuru"
 typeset -g THEME_SELF_FILE="${(%):-%x}"
@@ -225,6 +225,11 @@ typeset -g CHIZURU_REALTIME="${CHIZURU_REALTIME:-1}"
 # It works on every zsh ever built, but it hijacks TMOUT and SIGALRM, so it
 # stays off unless you ask for it.
 typeset -g CHIZURU_REALTIME_FALLBACK="${CHIZURU_REALTIME_FALLBACK:-0}"
+
+# How many "<theme>.bak.<timestamp>" files theme-update keeps.
+#   N > 0 : keep the N newest, delete the rest
+#   0     : keep everything (the original, unbounded behaviour)
+typeset -g CHIZURU_BACKUP_KEEP="${CHIZURU_BACKUP_KEEP:-5}"
 
 force_color_prompt=yes
 
@@ -1309,6 +1314,81 @@ __theme_get_remote_version() {
   return 0
 }
 
+# Backup rotation for theme-update.
+#
+# Backups are named "<theme>.bak.YYYYMMDDHHMMSS", so they sort chronologically
+# by NAME.  Sorting by mtime would be wrong here: `cp -p` copies the source
+# file's timestamp, which makes every backup look the same age.
+__chizuru_backup_files() {
+  emulate -L zsh
+  setopt local_options no_nomatch null_glob
+
+  local self_file="${1:-${THEME_SELF_FILE:-}}"
+  [[ -n "$self_file" ]] && self_file="${self_file:A}"
+  [[ -n "$self_file" ]] || return 1
+
+  # <-> matches only our own numeric timestamps, so a hand-renamed file such
+  # as "....bak.keepme" is never listed, counted, or deleted.
+  # (N) no-match is fine, (.) regular files only, (On) newest first
+  reply=(${self_file}.bak.<->(N.On))
+  return 0
+}
+
+# __chizuru_prune_backups [SELF_FILE] [KEEP]
+__chizuru_prune_backups() {
+  emulate -L zsh
+  setopt local_options no_nomatch null_glob
+
+  local self_file="${1:-${THEME_SELF_FILE:-}}"
+  local raw="${2:-${CHIZURU_BACKUP_KEEP:-5}}"
+  local -i keep=0
+  local f
+
+  [[ -n "$raw" && "$raw" != *[^0-9]* ]] || return 0
+  keep=$raw
+  (( keep > 0 )) || return 0          # 0 => unlimited, nothing to do
+
+  local -a reply
+  __chizuru_backup_files "$self_file" || return 0
+  (( ${#reply} > keep )) || return 0
+
+  for f in "${(@)reply[keep+1,-1]}"; do
+    # paranoia: only ever remove files we generated ourselves
+    [[ -f "$f" && "$f" == *.bak.<-> ]] || continue
+    command rm -f -- "$f" 2>/dev/null
+  done
+  return 0
+}
+
+# List the backups currently on disk (newest first)
+chizuru-backups() {
+  emulate -L zsh
+  local -a reply
+  local f
+  __chizuru_backup_files || { print -r -- "theme file unknown"; return 1 }
+  if (( ${#reply} == 0 )); then
+    print -r -- "no backups"
+    return 0
+  fi
+  print -r -- "keep policy: ${CHIZURU_BACKUP_KEEP:-5} (0 = unlimited) / on disk: ${#reply}"
+  for f in "${(@)reply}"; do
+    print -r -- "  $f"
+  done
+  return 0
+}
+
+# Manual rotation:  chizuru-backup-prune [N]
+chizuru-backup-prune() {
+  emulate -L zsh
+  local -a reply
+  local -i before=0 after=0
+  __chizuru_backup_files >/dev/null; before=${#reply}
+  __chizuru_prune_backups "" "${1:-${CHIZURU_BACKUP_KEEP:-5}}"
+  __chizuru_backup_files >/dev/null; after=${#reply}
+  print -r -- "backups: ${before} -> ${after}"
+  return 0
+}
+
 theme-update() {
   emulate -L zsh
   setopt prompt_subst
@@ -1381,6 +1461,7 @@ theme-update() {
 
   command cp -p "$self_file" "${self_file}.bak.${stamp}" 2>/dev/null || \
     command cp "$self_file" "${self_file}.bak.${stamp}" 2>/dev/null
+  __chizuru_prune_backups "$self_file"
   command mv -f "$tmp" "$self_file" || { print -r -- "Install failed"; return 1 }
   print -r -- "Theme updated to $remote_ver."
 
@@ -1504,6 +1585,9 @@ chizuru-info() {
   print -r -- "ip backend       : ${__chizuru_ip_backend}"
   print -r -- "ls options       : ${__chizuru_ls_opts[*]}"
   print -r -- "hostname         : ${__chizuru_hostname_cached}"
+  local -a reply
+  __chizuru_backup_files >/dev/null 2>&1
+  print -r -- "backups          : ${#reply} on disk, keep ${CHIZURU_BACKUP_KEEP:-5} (0 = unlimited)"
   print -r -- "container/WSL    : ${__chizuru_container_tag:-(none)}"
   print -r -- "IPv4             : ${ip_addr:-(none)}"
   print -r -- "IPv6             : ${ip6_addr:-(none)}"
