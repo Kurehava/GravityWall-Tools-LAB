@@ -10,7 +10,7 @@
 
   > 主题文件的位置从 `~/.oh-my-zsh/themes/` 改到了 `~/.oh-my-zsh/custom/themes/`。  
   > `custom` 目录不会被 `omz update` 覆盖，所以你的改动不会丢失。  
-  > 安装脚本会自动把旧位置的文件改名让开（`Chizuru.zsh-theme.replaced.<时间戳>`）。
+  > 安装脚本会自动把旧位置的文件改名让开（`Chizuru.zsh-theme.replaced.<时间戳>`）。  
   > 旧安装脚本安装的用户请在`~/.oh-my-zsh/themes/`目录下修改主题文件。  
 
 ---
