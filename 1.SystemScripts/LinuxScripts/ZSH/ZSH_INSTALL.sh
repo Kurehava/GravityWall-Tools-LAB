@@ -805,11 +805,11 @@ set_login_shell() {
     log "Plz input your passwd to change your Login SHELL: "
     log_no_newline "Passwd >> "
     if chsh -s "$ZSH_BIN" >/dev/null 2>&1; then
-        log "Login shell : $ZSH_BIN"
+        echo && log "Login shell : $ZSH_BIN"
         return 0
     fi
     if [ -n "$SUDO" ] && $SUDO chsh -s "$ZSH_BIN" "$me" >/dev/null 2>&1; then
-        log "Login shell : $ZSH_BIN"
+        echo && log "Login shell : $ZSH_BIN"
         return 0
     fi
 
