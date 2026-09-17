@@ -812,6 +812,7 @@ set_login_shell() {
     #    return 0
     #fi
 
+    log "Plz input your passwd to change your Login SHELL: " 
     chsh -s "$ZSH_BIN" "$me" || $SUOD chsh -s "$ZSH_BIN" "$me"
     
     if [ "$?" -eq "0" ]; then
