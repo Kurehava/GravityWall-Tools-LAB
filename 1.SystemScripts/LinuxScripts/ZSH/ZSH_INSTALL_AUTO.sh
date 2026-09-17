@@ -48,6 +48,8 @@ SET_DEFAULT_SHELL="${CHIZURU_SET_DEFAULT_SHELL:-1}"
 ZSHRC_BACKUP_KEEP="${CHIZURU_ZSHRC_BACKUP_KEEP:-5}"
 FORCE_SPECTRUM_FIX="${CHIZURU_FORCE_SPECTRUM_FIX:-0}"
 
+sudo pwd > /dev/null
+
 # ---------------------------------------------------------------------------
 # output helpers
 # ---------------------------------------------------------------------------
