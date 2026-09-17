@@ -799,23 +799,24 @@ set_login_shell() {
         fi
     fi
 
-    #log "change login shell to ZSH."
-    #if chsh -s "$ZSH_BIN" >/dev/null 2>&1; then
-    #    log "Login shell : $ZSH_BIN"
-    #    return 0
-    #fi
-    #if [ -n "$SUDO" ] && $SUDO chsh -s "$ZSH_BIN" "$me" >/dev/null 2>&1; then
-    #    log "Login shell : $ZSH_BIN"
-    #    return 0
-    #fi
-
-    log "Plz input your passwd to change your Login SHELL: " 
-    chsh -s "$ZSH_BIN" "$me" || $SUOD chsh -s "$ZSH_BIN" "$me"
-    
-    if [ "$?" -eq "0" ]; then
+    log "change login shell to ZSH."
+    log "Plz input your passwd to change your Login SHELL: "
+    if chsh -s "$ZSH_BIN" >/dev/null 2>&1; then
         log "Login shell : $ZSH_BIN"
         return 0
     fi
+    if [ -n "$SUDO" ] && $SUDO chsh -s "$ZSH_BIN" "$me" >/dev/null 2>&1; then
+        log "Login shell : $ZSH_BIN"
+        return 0
+    fi
+
+    #log "Plz input your passwd to change your Login SHELL: " 
+    #chsh -s "$ZSH_BIN" "$me" || $SUOD chsh -s "$ZSH_BIN" "$me"
+    
+    #if [ "$?" -eq "0" ]; then
+    #    log "Login shell : $ZSH_BIN"
+    #    return 0
+    #fi
 
     warn "For unknown reasons, we cannot change the login shell for you."
     warn "Please change it manually later:"
