@@ -27,15 +27,6 @@
 
   `bash <(curl -fsSL "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL_AUTO.sh")`
 
-  > macOS
-
-  macOS 的支持已经并进 `ZSH_INSTALL_AUTO.sh`（自动识别 Darwin、使用 Homebrew、处理 BSD sed）。
-  直接用上面的 Auto 命令即可。
-
-  `ZSH_INSTALL_MacOS.sh` 现在只是一个转发脚本（保留旧链接可用），它会下载并执行 `ZSH_INSTALL_AUTO.sh`。
-
-  `bash <(curl -fsSL "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL_MacOS.sh")`
-
 ## 支持的平台
 
 | 平台 | 包管理器 |
@@ -47,9 +38,6 @@
 | Alpine | `apk` |
 | macOS | Homebrew |
 | WSL1 / WSL2 | 同上（会自动识别 WSL） |
-
-  包管理器是**实际探测**出来的，不再根据 `/etc/os-release` 的 `NAME` 猜。
-  以前 CentOS Stream、Rocky、Fedora 都会被错判成 `apt`。
 
 ## 命令行参数
 
@@ -155,6 +143,7 @@ CHIZURU_FORCE_SPECTRUM_FIX=1      强制安装旧版 zsh 的 spectrum.zsh 兼容
   | `ls/grep/diff/ip --color` | GNU 工具 | 先探测再决定是否设置 alias |
 
 ## 手动安装
+ curl：
 
   ```
   mkdir -p "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes"
@@ -208,23 +197,6 @@ CHIZURU_FORCE_SPECTRUM_FIX=1      强制安装旧版 zsh 的 spectrum.zsh 兼容
   CHIZURU_SHOW_VIRTUAL_NIC=1
   ZSH_THEME="Chizuru"
   ```
-
----
-
-# 替换其它主题为 Chizuru 主题
-
-  kensyo：
-
-  ```
-  mkdir -p "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes" && \
-  curl -fsSL "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme" \
-    -o "${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/Chizuru.zsh-theme" && \
-  sed -i 's/^ZSH_THEME=.*/ZSH_THEME="Chizuru"/' "$HOME/.zshrc" && \
-  rm -f "$HOME/.oh-my-zsh/themes/kensyo.zsh-theme" && \
-  source "$HOME/.zshrc"
-  ```
-
-  sysinfo：把上面的 `kensyo` 换成 `sysinfo` 即可。
 
 ---
 
