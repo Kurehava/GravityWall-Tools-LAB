@@ -61,6 +61,7 @@ TAG_I="[${C_G}INFO${C_0}]"
 TAG_W="[${C_Y}WARN${C_0}]"
 
 log()  { printf '%s %s\n' "$TAG_I" "$*"; }
+log_no_newline() { printf '%s %s' "$TAG_I" "$*"; }
 warn() { printf '%s %s\n' "$TAG_W" "$*" >&2; }
 err()  { printf '%s %s\n' "$TAG_E" "$*" >&2; }
 die()  { err "$*"; err "exit."; exit 1; }
@@ -801,6 +802,7 @@ set_login_shell() {
 
     log "change login shell to ZSH."
     log "Plz input your passwd to change your Login SHELL: "
+    log_no_newline "Passwd >> "
     if chsh -s "$ZSH_BIN" >/dev/null 2>&1; then
         log "Login shell : $ZSH_BIN"
         return 0
