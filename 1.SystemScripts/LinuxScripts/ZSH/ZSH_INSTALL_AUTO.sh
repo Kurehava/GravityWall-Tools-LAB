@@ -802,12 +802,19 @@ set_login_shell() {
         fi
     fi
 
-    log "change login shell to ZSH."
-    if chsh -s "$ZSH_BIN" >/dev/null 2>&1; then
-        log "Login shell : $ZSH_BIN"
-        return 0
-    fi
-    if [ -n "$SUDO" ] && $SUDO chsh -s "$ZSH_BIN" "$me" >/dev/null 2>&1; then
+    #log "change login shell to ZSH."
+    #if chsh -s "$ZSH_BIN" >/dev/null 2>&1; then
+    #    log "Login shell : $ZSH_BIN"
+    #    return 0
+    #fi
+    #if [ -n "$SUDO" ] && $SUDO chsh -s "$ZSH_BIN" "$me" >/dev/null 2>&1; then
+    #    log "Login shell : $ZSH_BIN"
+    #    return 0
+    #fi
+
+    chsh -s "$ZSH_BIN" "$me" || $SUOD chsh -s "$ZSH_BIN" "$me"
+    
+    if [ "$?" -eq "0" ]; then
         log "Login shell : $ZSH_BIN"
         return 0
     fi
