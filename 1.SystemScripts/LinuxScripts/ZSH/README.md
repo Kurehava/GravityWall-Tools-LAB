@@ -73,7 +73,7 @@ CHIZURU_ZSHRC_BACKUP_KEEP=5       ~/.zshrc 备份保留几份（0 = 不限制）
 CHIZURU_FORCE_SPECTRUM_FIX=1      强制安装旧版 zsh 的 spectrum.zsh 兼容文件
 ```
 
-  ⚠ 中国大陆用户：原来推荐的 `https://ghproxy.com/` 已经停止服务。
+  ⚠ 国内本土的情况：原来推荐的 `https://ghproxy.com/` 已经停止服务。  
   请用 `GH_PROXY` 或 `--proxy` 指定一个你信任的镜像前缀，例如：
 
   `GH_PROXY="https://你的镜像/" bash <(curl -fsSL "https://raw.githubusercontent.com/.../ZSH_INSTALL_AUTO.sh")`
