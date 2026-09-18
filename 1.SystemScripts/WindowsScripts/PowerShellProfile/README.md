@@ -5,7 +5,9 @@ Or use command:
 echo $PROFILE
 
 Beacuse, PowerShell and PWSH's  Profile path is different.
+
 ------------------------------------------------------------------------------
+
 Or you can sign Microsoft.PowerShell_profile.ps1 script then use this.
 
 # cert your script
