@@ -1,3 +1,14 @@
+------------------------------------------------------------------------------
+You can COPY Microsoft.PowerShell_profile.ps1 to this path:  
+"C:\Users\<user_name>\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
+
+Or use command:
+echo $PROFILE
+
+Beacuse, PowerShell and PWSH's  Profile path is different.
+------------------------------------------------------------------------------
+Or you can sign Microsoft.PowerShell_profile.ps1 script then use this.
+
 # cert your script
 First, create a cert use code block command. 
 > * You must copy & pasta command to powershell and exec.  
@@ -9,7 +20,7 @@ Second, cert your script
 > * When you script changed, you must cert your script again.
 
 ```
-first, Download "newProfile.ps1" and rename to "$HOME\Documents\PowerShell\Microsoft.Powershell_profile.ps1".
+first, Download "Microsoft.PowerShell_profile.ps1" and rename to "$PROFILE".
 
 # PLZ run command on administrator.
 # PLZ run command on administrator.
@@ -22,5 +33,5 @@ Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root
 Remove-Item -Path $cer -Force
 
 $cert = Get-ChildItem -Path Cert:\CurrentUser\My | Where-Object { $_.Subject -eq "CN=CSC" }  
-Set-AuthenticodeSignature -FilePath "$HOME\Documents\PowerShell\Microsoft.Powershell_profile.ps1" -Certificate $cert
+Set-AuthenticodeSignature -FilePath "$PROFILE" -Certificate $cert
 ```
