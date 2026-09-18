@@ -1,4 +1,3 @@
-------------------------------------------------------------------------------
 You can COPY Microsoft.PowerShell_profile.ps1 to this path:  
 "C:\Users\<user_name>\Documents\PowerShell\Microsoft.PowerShell_profile.ps1"
 
