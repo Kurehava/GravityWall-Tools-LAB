@@ -29,6 +29,10 @@
 
   `bash <(curl -fsSL "https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/main/1.SystemScripts/LinuxScripts/ZSH/ZSH_INSTALL_AUTO.sh")`
 
+# 仅下载主题
+
+  `curl 'https://raw.githubusercontent.com/Kurehava/GravityWall-Tools-LAB/refs/heads/main/1.SystemScripts/LinuxScripts/ZSH/Chizuru.zsh-theme' -o ~/.oh-my-zsh/themes/Chizuru.zsh-theme`
+
 ## 支持的平台
 
 | 平台 | 包管理器 |
