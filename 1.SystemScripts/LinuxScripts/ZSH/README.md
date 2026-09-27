@@ -72,6 +72,10 @@ CHIZURU_FORCE_SPECTRUM_FIX=1      强制安装旧版 zsh 的 spectrum.zsh 兼容
 
   `GH_PROXY="https://你的镜像/" bash <(curl -fsSL "https://raw.githubusercontent.com/.../ZSH_INSTALL_AUTO.sh")`
 
+  可以试试 `https://ghproxy.net/`。
+  
+  但是请注意！！！这个并不是我官方推荐，并且这个也有可能随时失效，安全性也有待商榷。
+
 ## 脚本会做什么
 
   1. 探测系统 / 包管理器 / 下载工具（curl 或 wget，两个都支持）
