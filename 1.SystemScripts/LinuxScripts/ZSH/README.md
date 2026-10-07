@@ -228,3 +228,14 @@ CHIZURU_FORCE_SPECTRUM_FIX=1      强制安装旧版 zsh 的 spectrum.zsh 兼容
   ```
   cp ~/.zshrc ~/.zshrc.bak.$(date +%Y%m%d%H%M%S) && sed -i -E '\#^[[:space:]]*source[[:space:]]+.*zsh-autosuggestions\.zsh[[:space:]]*$#d;\#^[[:space:]]*source[[:space:]]+.*zsh-syntax-highlighting\.zsh[[:space:]]*$#d;\#^[[:space:]]*plugins\+=\(zsh-autosuggestions zsh-syntax-highlighting\)[[:space:]]*$#d;\#^[[:space:]]*source[[:space:]]+.*oh-my-zsh\.sh#i plugins+=(zsh-autosuggestions zsh-syntax-highlighting)' ~/.zshrc && OMZ_DIR="${ZSH:-$HOME/.oh-my-zsh}" && rm -rf "$OMZ_DIR/plugins/zsh-autosuggestions" "$OMZ_DIR/plugins/zsh-syntax-highlighting" && omz update
   ```
+
+  MacOS用户请使用以下的命令
+  ```
+  cp ~/.zshrc ~/.zshrc.bak.$(date +%Y%m%d%H%M%S) && sed -i '' -E \
+  -e '\#^[[:space:]]*source[[:space:]]+.*zsh-autosuggestions\.zsh[[:space:]]*$#d' \
+  -e '\#^[[:space:]]*source[[:space:]]+.*zsh-syntax-highlighting\.zsh[[:space:]]*$#d' \
+  -e '\#^[[:space:]]*plugins\+=\(zsh-autosuggestions zsh-syntax-highlighting\)[[:space:]]*$#d' \
+  -e '\#^[[:space:]]*source[[:space:]]+.*oh-my-zsh\.sh#i\
+plugins+=(zsh-autosuggestions zsh-syntax-highlighting)
+' ~/.zshrc && OMZ_DIR="${ZSH:-$HOME/.oh-my-zsh}" && rm -rf "$OMZ_DIR/plugins/zsh-autosuggestions" "$OMZ_DIR/plugins/zsh-syntax-highlighting" && omz update
+  ```
